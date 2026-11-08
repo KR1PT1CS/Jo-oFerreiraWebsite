@@ -264,7 +264,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794174262"></script>
+<script src="runtime.js?v=1794174609"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -970,29 +970,13 @@ class Component extends DCLogic {
                 }
               }
             }
-            // find the letters' enclosed counters (the "o"/"a" holes) and fill them black;
-            // tiny gaps from the font's dither pattern are left alone
-            const hole = new Uint8Array(gw * gh), seen = new Uint8Array(gw * gh);
-            for (let s0 = 0; s0 < gw * gh; s0++) {
-              if (white[s0] || seen[s0]) continue;
-              const stack = [s0], comp = []; seen[s0] = 1;
-              let touches = false, minI = gw, maxI = 0, minJ = gh, maxJ = 0;
-              while (stack.length) {
-                const k = stack.pop(); comp.push(k);
-                const ci = k % gw, cj = (k / gw) | 0;
-                if (ci === 0 || cj === 0 || ci === gw - 1 || cj === gh - 1) touches = true;
-                if (ci < minI) minI = ci; if (ci > maxI) maxI = ci; if (cj < minJ) minJ = cj; if (cj > maxJ) maxJ = cj;
-                const nb = [ci > 0 ? k - 1 : -1, ci < gw - 1 ? k + 1 : -1, cj > 0 ? k - gw : -1, cj < gh - 1 ? k + gw : -1];
-                for (const q of nb) if (q >= 0 && !white[q] && !seen[q]) { seen[q] = 1; stack.push(q); }
-              }
-              const bwC = maxI - minI + 1, bhC = maxJ - minJ + 1;
-              if (!touches && comp.length >= 8 && bwC >= 2 && bhC >= 3) comp.forEach((k) => { hole[k] = 1; });
-            }
-            // white islands sitting inside a counter ring are part of the hole too: paint them black
-            // empty cells reachable from outside the glyph
-            const ext = new Uint8Array(gw * gh), est = [];
-            for (let i = 0; i < gw; i++) { est.push(i, (gh - 1) * gw + i); }
-            for (let j = 0; j < gh; j++) { est.push(j * gw, j * gw + gw - 1); }
+            // fill ONLY the letter counters (the small slanted window inside o/a/e/r): a white island
+            // wrapped by a single enclosed gap ring. Dither dots/bands are never touched.
+            const hole = new Uint8Array(gw * gh);
+            const N = gw * gh;
+            const ext = new Uint8Array(N), est = [];
+            for (let i = 0; i < gw; i++) est.push(i, (gh - 1) * gw + i);
+            for (let j = 0; j < gh; j++) est.push(j * gw, j * gw + gw - 1);
             while (est.length) {
               const k = est.pop();
               if (ext[k] || white[k]) continue;
@@ -1000,33 +984,63 @@ class Component extends DCLogic {
               const ci = k % gw, cj = (k / gw) | 0;
               if (ci > 0) est.push(k - 1); if (ci < gw - 1) est.push(k + 1); if (cj > 0) est.push(k - gw); if (cj < gh - 1) est.push(k + gw);
             }
-            const seenW = new Uint8Array(gw * gh);
-            for (let s0 = 0; s0 < gw * gh; s0++) {
-              if (!white[s0] || seenW[s0]) continue;
-              const stack = [s0], comp = []; seenW[s0] = 1;
-              let enclosed = true, touchesHole = false;
-              while (stack.length) {
-                const k = stack.pop(); comp.push(k);
+            const nbs = (k) => { const ci = k % gw, cj = (k / gw) | 0; return [ci > 0 ? k - 1 : -1, ci < gw - 1 ? k + 1 : -1, cj > 0 ? k - gw : -1, cj < gh - 1 ? k + gw : -1]; };
+            const gapLab = new Int32Array(N).fill(-1), gaps = [];
+            for (let s0 = 0; s0 < N; s0++) {
+              if (white[s0] || ext[s0] || gapLab[s0] >= 0) continue;
+              const id = gaps.length, st = [s0], cells = []; gapLab[s0] = id;
+              let mi = gw, ma = 0, mj = gh, xj = 0;
+              while (st.length) {
+                const k = st.pop(); cells.push(k);
                 const ci = k % gw, cj = (k / gw) | 0;
-                const nb = [ci > 0 ? k - 1 : -1, ci < gw - 1 ? k + 1 : -1, cj > 0 ? k - gw : -1, cj < gh - 1 ? k + gw : -1];
-                if (nb.indexOf(-1) >= 0) enclosed = false;
-                for (const q of nb) {
-                  if (q < 0) continue;
-                  if (white[q]) { if (!seenW[q]) { seenW[q] = 1; stack.push(q); } }
-                  else if (hole[q]) touchesHole = true;
-                  else if (ext[q]) enclosed = false;
+                if (ci < mi) mi = ci; if (ci > ma) ma = ci; if (cj < mj) mj = cj; if (cj > xj) xj = cj;
+                for (const q of nbs(k)) if (q >= 0 && !white[q] && !ext[q] && gapLab[q] < 0) { gapLab[q] = id; st.push(q); }
+              }
+              gaps.push({ cells, w: ma - mi + 1, h: xj - mj + 1 });
+            }
+            const wLab = new Int32Array(N).fill(-1), wcs = [];
+            for (let s0 = 0; s0 < N; s0++) {
+              if (!white[s0] || wLab[s0] >= 0) continue;
+              const id = wcs.length, st = [s0], cells = []; wLab[s0] = id;
+              const touch = new Set(); let outside = false, edge = false;
+              let mi = gw, ma = 0, mj = gh, xj = 0;
+              while (st.length) {
+                const k = st.pop(); cells.push(k);
+                const ci = k % gw, cj = (k / gw) | 0;
+                if (ci < mi) mi = ci; if (ci > ma) ma = ci; if (cj < mj) mj = cj; if (cj > xj) xj = cj;
+                for (const q of nbs(k)) {
+                  if (q < 0) { outside = true; edge = true; continue; }
+                  if (white[q]) { if (wLab[q] < 0) { wLab[q] = id; st.push(q); } }
+                  else if (ext[q]) outside = true;
+                  else touch.add(gapLab[q]);
                 }
               }
-              if (enclosed && touchesHole && comp.length < 260) comp.forEach((k) => { white[k] = 0; hole[k] = 1; });
+              wcs.push({ cells, touch, outside, edge, w: ma - mi + 1, h: xj - mj + 1 });
             }
-            // dither gaps left inside a filled counter become black as well
-            for (let k = 0; k < gw * gh; k++) {
-              if (white[k] || hole[k] || ext[k]) continue;
-              const ci = k % gw, cj = (k / gw) | 0;
-              let hn = 0;
-              if (ci > 0 && hole[k - 1]) hn++; if (ci < gw - 1 && hole[k + 1]) hn++; if (cj > 0 && hole[k - gw]) hn++; if (cj < gh - 1 && hole[k + gw]) hn++;
-              if (hn >= 3) hole[k] = 1;
-            }
+            // how many different white components border each gap ring
+            const ringWhites = gaps.map(() => new Set());
+            wcs.forEach((w, wi) => w.touch.forEach((g) => ringWhites[g].add(wi)));
+            wcs.forEach((w, wi) => {
+              if (w.outside || w.cells.length < 2 || w.cells.length > 160) return;
+              // ignore specks sitting inside the window (only touch this island)
+              const real = [...w.touch].filter((g) => !(gaps[g].cells.length <= 3 && ringWhites[g].size === 1));
+              if (real.length !== 1) return;
+              const g = real[0], ring = gaps[g];
+              if (ring.cells.length < 8 || ring.h < 3 || ring.w < 3 || ringWhites[g].size > 2 + (w.touch.size - 1)) return;
+              w.touch.forEach((t) => { if (t !== g) gaps[t].cells.forEach((k) => { hole[k] = 1; }); });
+              w.cells.forEach((k) => { hole[k] = 1; white[k] = 0; });
+              ring.cells.forEach((k) => { hole[k] = 1; });
+            });
+            // thin slit windows cut into the letters' black bars (the "e" eyes)
+            wcs.forEach((w) => {
+              if (w.edge || w.touch.size || w.cells.length > 80 || w.h > 3 || w.w < 4 || w.w < w.h * 2) return;
+              w.cells.forEach((k) => { hole[k] = 1; white[k] = 0; });
+            });
+            // single dither gaps sitting inside a filled island
+            gaps.forEach((gp) => {
+              if (gp.cells.length > 3) return;
+              if (gp.cells.every((k) => nbs(k).every((q) => q >= 0 && (hole[q] || gapLab[q] === gapLab[k])))) gp.cells.forEach((k) => { hole[k] = 1; });
+            });
             for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
               const k = j * gw + i;
               let c = -1;
