@@ -63,6 +63,7 @@ a:hover{color:var(--accent)}
 .chip{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border:1px solid rgba(242,238,250,.24);border-radius:0;font-family:'Pixelta','Geist Mono',monospace;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:#F2EEFA;transition:background .3s,color .3s,border-color .3s,box-shadow .3s}
 .chip:hover{border-color:var(--accent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .chip:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.nowplaying{animation:npIn .5s steps(6) both}@keyframes npIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}@media (max-width:640px){.nowplaying{display:none}}
 .chip.on{background:#F2EEFA;color:#000000;border-color:#F2EEFA;text-shadow:none}
 .tag{display:inline-flex;background:color-mix(in srgb,var(--bg) 72%,transparent);padding:6px 11px;border:1px solid rgba(180,140,255,.26);border-radius:0;font-size:13px;letter-spacing:.04em;color:#DCD3EC}
 .dot{width:8px;height:8px;border-radius:0;background:var(--accent);animation:pulse 2.4s ease-out infinite}
@@ -104,11 +105,14 @@ a:hover{color:var(--accent)}
 
 <canvas class="navfx" ref="{{setNavFx}}" aria-hidden="true"></canvas>
 <audio ref="{{setAudio}}" src="assets/audio/iudicium.mp4" loop="loop" preload="auto"></audio>
-<button class="chip sound" onClick="{{toggleMusic}}" aria-pressed="{{musicPressed}}" aria-label="Background music" style="position: fixed; right: 20px; bottom: 20px; z-index: 55; gap: 10px; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)">
+<div class="soundbar" style="position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; align-items: center; gap: 14px; pointer-events: none">
+<sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><p class="nowplaying" aria-live="polite" style="margin: 0; font-family: 'Pixelta', 'Geist Mono', monospace; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: #F2EEFA; text-shadow: 0 0 12px rgba(178, 140, 220, .55), 0 1px 2px #000"><span style="opacity: .6">Now playing</span> — IUDICIUM</p></sc-if>
+<button class="chip sound" onClick="{{toggleMusic}}" aria-pressed="{{musicPressed}}" aria-label="Background music" style="pointer-events: auto; gap: 10px; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)">
 <sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true" style="flex: none"><rect x="0" y="3" width="2" height="2"></rect><rect x="2" y="2" width="1" height="4"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="5" y="2" width="1" height="1"></rect><rect x="5" y="5" width="1" height="1"></rect><rect x="6" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="1"></rect><rect x="7" y="6" width="1" height="1"></rect></svg></sc-if>
 <sc-if value="{{musicOff}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true" style="flex: none"><rect x="0" y="3" width="2" height="2"></rect><rect x="2" y="2" width="1" height="4"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="5" y="2" width="1" height="1"></rect><rect x="7" y="2" width="1" height="1"></rect><rect x="6" y="3" width="1" height="2"></rect><rect x="5" y="5" width="1" height="1"></rect><rect x="7" y="5" width="1" height="1"></rect></svg></sc-if>
 <span>{{musicLabel}}</span>
 </button>
+</div>
 
 <header onMouseMove="{{onMove}}" onMouseLeave="{{onLeave}}" style="position: relative; height: 900px; overflow: hidden">
 <canvas ref="{{setCanvas}}" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated"></canvas>
@@ -264,7 +268,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794174609"></script>
+<script src="runtime.js?v=1794175253"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
