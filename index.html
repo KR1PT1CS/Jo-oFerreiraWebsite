@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>João Ferreira — Games and art portfolio</title>
 <link rel="icon" href="data:,">
@@ -114,7 +115,7 @@ a:hover{color:var(--accent)}
 </nav>
 
 <div id="top" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 0 clamp(20px, 4vw, 56px) 64px; display: flex; flex-direction: column; gap: 28px; pointer-events: none">
-<h1 class="name stroke" style="margin: 0; font-family: 'Dither Byte', 'Pixelta', monospace; font-size: clamp(54px, 9.5vw, 150px); line-height: .92"><span class="bob">João<br>Ferreira</span></h1>
+<h1 class="name stroke" ref="{{setNameEl}}" style="margin: 0; font-family: 'Dither Byte', 'Pixelta', monospace; font-size: clamp(54px, 9.5vw, 150px); line-height: .92"><span class="bob">João<br>Ferreira</span></h1>
 <div style="display: flex; flex-wrap: wrap; gap: 24px 64px; align-items: flex-end; justify-content: space-between">
 <p style="margin: 0; max-width: 780px; font-size: clamp(18px, 1.75vw, 24px); line-height: 1.55; color: #EDE7F7">Currently a 3rd year Videogame student at Universidade Lusofona. I work with a variety of art software since my main areas are 3D modelling, concept art and graphic design, such as Photoshop, Blender, Maya and Substance Painter. My main game software is Unity, and I also dabble with sound and video software such as Premiere Pro, After Effects and Reaper. I tend to lean on survival horror and first person shooter genres, and I try new art styles with each project release.</p>
 <p class="lbl" style="margin: 0">Lisbon, PT / Games and Art / 2026</p>
@@ -247,7 +248,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js"></script>
+<script src="runtime.js?v=1794149732"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -407,6 +408,9 @@ class Component extends DCLogic {
       }
     };
     this.curCv = null;
+    this.nameEl = null;
+    this.nameParts = [];
+    this.setNameEl = (el) => { this.nameEl = el; };
     this.setCurFx = (el) => { this.curCv = el; };
     this.setNavFx = (el) => { this.navCv = el; };
     this.navHandlers = {};
@@ -419,6 +423,7 @@ class Component extends DCLogic {
     this.onMove = (e) => {
       const r = e.currentTarget.getBoundingClientRect();
       this.mouse = [e.clientX - r.left, e.clientY - r.top];
+      this.mouseClient = [e.clientX, e.clientY];
       const now = (performance.now() - this.t0) / 1000;
       const lr = this.rip[this.rip.length - 1];
       if (!lr || (now - lr[2] > 0.06 && Math.hypot(this.mouse[0] - lr[0], this.mouse[1] - lr[1]) > 10)) {
@@ -427,7 +432,8 @@ class Component extends DCLogic {
       }
       if (this.sm[0] < -9000) this.sm = this.mouse.slice();
     };
-    this.onLeave = () => { this.mouse = [-9999, -9999]; this.sm = [-9999, -9999]; };
+    this.onLeave = () => {
+      this.mouseClient = null; this.mouse = [-9999, -9999]; this.sm = [-9999, -9999]; };
   }
 
   refFor(key) {
@@ -544,6 +550,7 @@ class Component extends DCLogic {
     this.startFlames();
     this.startArtFx();
     this.startCursorParts();
+    this.startNameFx();
   }
 
   startArtFx() {
@@ -729,6 +736,67 @@ class Component extends DCLogic {
     }
   }
 
+  startNameFx() {
+    const Bm = [0,32,8,40,2,34,10,42,48,16,56,24,50,18,58,26,12,44,4,36,14,46,6,38,60,28,52,20,62,30,54,22,3,35,11,43,1,33,9,41,51,19,59,27,49,17,57,25,15,47,7,39,13,45,5,37,63,31,55,23,61,29,53,21].map((v) => (v + 0.5) / 64);
+    const mc = document.createElement('canvas');
+    const mctx = mc.getContext('2d');
+    let D = null, nz = null, cols = 0, rows = 0, masked = false, last = performance.now();
+    const cell = 4;
+    const clearMask = (el) => { el.style.webkitMaskImage = ''; el.style.maskImage = ''; masked = false; };
+    const frame = (now) => {
+      if (this.dead) return;
+      requestAnimationFrame(frame);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const el = this.nameEl;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const c = Math.ceil(r.width / cell), rr = Math.ceil(r.height / cell);
+      if (c !== cols || rr !== rows) {
+        cols = c; rows = rr; D = new Float32Array(cols * rows); nz = new Float32Array(cols * rows);
+        for (let i = 0; i < nz.length; i++) { const h = Math.sin(i * 12.9898 + 4.1) * 43758.5453; nz[i] = h - Math.floor(h); }
+        mc.width = cols; mc.height = rows;
+      }
+      const on = (this.props.interacaoRato ?? true) && this.mouseClient;
+      const mx = on ? this.mouseClient[0] - r.left : -1e5, my = on ? this.mouseClient[1] - r.top : -1e5;
+      const R = Math.max(70, r.height * 0.32);
+      let any = false;
+      const img = mctx.createImageData(cols, rows);
+      const px = img.data;
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          const k = j * cols + i;
+          let d = D[k];
+          if (on) {
+            const dx = (i + 0.5) * cell - mx, dy = (j + 0.5) * cell - my;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < R) {
+              const before = d;
+              d = Math.min(1, d + Math.pow(1 - dist / R, 1.4) * (0.5 + nz[k]) * dt * 7);
+              if (before < 0.55 && d >= 0.55 && nz[k] > 0.72 && this.nameParts.length < 120) {
+                const a = Math.atan2(dy, dx) + (nz[k] - 0.5), sp = 30 + nz[k] * 80;
+                this.nameParts.push({ x: r.left + (i + 0.5) * cell, y: r.top + (j + 0.5) * cell, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 10, life: 0, max: 0.5 + nz[k] * 0.9, ci: 4 + (nz[k] > 0.86 ? 1 : 0), big: false });
+              }
+            }
+          }
+          d = Math.max(0, d - dt * (0.45 + nz[k] * 0.35));
+          D[k] = d;
+          if (d > 0) any = true;
+          const hole = d > Bm[(j % 8) * 8 + (i % 8)];
+          px[k * 4 + 3] = hole ? 0 : 255;
+        }
+      }
+      if (!any) { if (masked) clearMask(el); return; }
+      mctx.putImageData(img, 0, 0);
+      const url = 'url(' + mc.toDataURL() + ')';
+      el.style.webkitMaskImage = url; el.style.maskImage = url;
+      el.style.webkitMaskSize = '100% 100%'; el.style.maskSize = '100% 100%';
+      el.style.webkitMaskRepeat = 'no-repeat'; el.style.maskRepeat = 'no-repeat';
+      masked = true;
+    };
+    requestAnimationFrame(frame);
+  }
+
   startCursorParts() {
     const parts = [];
     let last = performance.now(), prev = null;
@@ -745,6 +813,15 @@ class Component extends DCLogic {
       const ctx = cv.getContext('2d');
       const P = this.props;
       const on = (P.interacaoRato ?? true) && this.mouse[0] > -9000;
+      if (this.nameParts.length) {
+        const cr = cv.getBoundingClientRect();
+        while (this.nameParts.length && parts.length < 420) {
+          const q = this.nameParts.shift();
+          q.x -= cr.left; q.y -= cr.top;
+          parts.push(q);
+        }
+        this.nameParts.length = 0;
+      }
       if (!parts.length && !on) { if (prev) { ctx.clearRect(0, 0, W, H); prev = null; } return; }
       ctx.clearRect(0, 0, W, H);
       const cell = Math.max(2, Number(P.tamanhoPixel ?? 3));
@@ -1205,6 +1282,7 @@ class Component extends DCLogic {
       musicPressed: S.music ? 'true' : 'false',
       musicLabel: S.music ? 'Sound on' : 'Sound off',
       setCurFx: this.setCurFx,
+      setNameEl: this.setNameEl,
       navGames: this.navHandlers.games,
       navArt: this.navHandlers.art,
       navAbout: this.navHandlers.about,
