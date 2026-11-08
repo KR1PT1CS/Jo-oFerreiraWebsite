@@ -158,8 +158,13 @@ a:hover{color:var(--accent)}
 <sc-if value="{{p.open}}" hint-placeholder-val="{{ false }}">
 <div class="detail" style="position: relative; display: flex; flex-wrap: wrap; gap: 40px; padding: 8px 0 56px">
 <canvas class="artfx" ref="{{p.detailFxRef}}" aria-hidden="true"></canvas>
-<div class="ph" style="flex: 1 1 520px; aspect-ratio: 16 / 9; min-width: 0">
+<div class="ph" style="position: relative; overflow: hidden; flex: 1 1 520px; aspect-ratio: 16 / 9; min-width: 0">
+<sc-if value="{{p.hasVideo}}" hint-placeholder-val="{{ false }}">
+<video ref="{{videoRef}}" src="{{p.video}}" poster="{{p.poster}}" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" preload="auto" aria-label="{{p.mediaLabel}}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; background: #000000"></video>
+</sc-if>
+<sc-if value="{{p.noVideo}}" hint-placeholder-val="{{ true }}">
 <span style="font-size: 14px; color: #DCD3EC">{{p.media}}</span>
+</sc-if>
 </div>
 <div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 22px; padding-top: 4px">
 <p style="margin: 0; font-size: 18px; line-height: 1.65; color: #EDE7F7">{{p.desc}}</p>
@@ -255,7 +260,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794168554"></script>
+<script src="runtime.js?v=1794172200"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -282,6 +287,11 @@ class Component extends DCLogic {
     this.setContactFx = (el) => { this.fxCv.contact = el; };
     this.fxFns = {};
     this.navCv = null;
+    this.videoRef = (el) => {
+      if (!el) return;
+      el.muted = true; el.defaultMuted = true; el.loop = true; el.playsInline = true;
+      const pr = el.play(); if (pr && pr.catch) pr.catch(() => {});
+    };
     this.actx = null;
     this.ensureAudioCtx = () => {
       try {
@@ -1589,7 +1599,7 @@ class Component extends DCLogic {
     const data = [
       { id: 'mayhem', title: 'MAYHEM', kind: "2D / Fight 'em Up", year: '2025', tags: [],
         desc: 'Slack off from your job and live a little in the fight pit. Follow the story of someone who lost their individualism and bring down the oppressive system.',
-        role: 'Cutscene Animator\nCharacter Designer / Animator\nEnvironment Artist\nVoice Acting\nCutscene Video Editing\nSFX Designer', status: 'Released', media: '[Gameplay GIF - combat]', href: 'https://simaocampanico.itch.io/mayhem', linkLabel: 'Play on itch.io' },
+        role: 'Cutscene Animator\nCharacter Designer / Animator\nEnvironment Artist\nVoice Acting\nCutscene Video Editing\nSFX Designer', status: 'Released', media: '[Gameplay GIF - combat]', video: 'assets/video/mayhem.mp4', poster: 'assets/video/mayhem-poster.jpg', href: 'https://simaocampanico.itch.io/mayhem', linkLabel: 'Play on itch.io' },
       { id: 'minos', title: 'Minos Maze + Void Mutiny', kind: 'Top-Down JRPG', year: '2025', tags: [],
         desc: 'Two top-down JRPGs that will be released together as a bundle. [One sentence about Minos Maze.] [One sentence about Void Mutiny.]',
         role: '[Your role]', status: 'Released', media: '[Key art for both games]', href: itch, linkLabel: '[Project link]' },
@@ -1610,6 +1620,9 @@ class Component extends DCLogic {
       const open = S.open === d.id;
       return Object.assign({}, d, {
         num: String(i + 1).padStart(2, '0'),
+        hasVideo: !!d.video,
+        noVideo: !d.video,
+        mediaLabel: d.title + ' gameplay',
         open: open,
         ariaExp: open ? 'true' : 'false',
         delay: (0.5 + i * 0.14).toFixed(2) + 's',
@@ -1649,6 +1662,7 @@ class Component extends DCLogic {
       setCanvas: this.setCanvas,
       setArtFx: this.setArtFx,
       setNavFx: this.setNavFx,
+      videoRef: this.videoRef,
       setAudio: this.setAudio,
       toggleMusic: this.toggleMusic,
       musicOn: !!S.music,
