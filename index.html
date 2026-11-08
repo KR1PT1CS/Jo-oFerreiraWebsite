@@ -250,7 +250,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794154302"></script>
+<script src="runtime.js?v=1794154452"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -778,37 +778,49 @@ class Component extends DCLogic {
           const txt = nd.nodeValue.trim();
           const rg = document.createRange(); rg.selectNodeContents(nd);
           const rc = rg.getBoundingClientRect();
-          const x0 = Math.round((rc.left - sr.left) / sc + M);
+          const x0 = (rc.left - sr.left) / sc + M;
           const base = Math.round((rc.top - sr.top) / sc + M + asc);
-          o.clearRect(0, 0, W, H);
-          o.fillStyle = '#fff';
-          o.fillText(txt, x0, base);
-          const d = o.getImageData(0, 0, W, H).data;
-          const ox = x0 + 0.006 * fsR, oy = base - 0.006 * fsR;
-          const pad = strokeCells + 1;
-          const iMin = -pad - Math.ceil(fsR * 0.15 / u), iMax = Math.ceil((o.measureText(txt).width + fsR * 0.35) / u) + pad;
-          const jMin = -Math.ceil(asc / u) - pad, jMax = Math.ceil(desc / u) + pad;
-          const gw = iMax - iMin + 1, gh = jMax - jMin + 1;
-          const white = new Uint8Array(gw * gh);
-          for (let j = jMin; j <= jMax; j++) for (let i = iMin; i <= iMax; i++) {
-            const cx = Math.floor(ox + (i + 0.5) * u), cy = Math.floor(oy + (j + 0.5) * u);
-            if (cx < 0 || cy < 0 || cx >= W || cy >= H) continue;
-            if (d[(cy * W + cx) * 4 + 3] > 127) white[(j - jMin) * gw + (i - iMin)] = 1;
-          }
-          for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
-            const k = j * gw + i;
-            let c = -1;
-            if (white[k]) c = 1;
-            else {
-              outer: for (let dj = -strokeCells; dj <= strokeCells; dj++) for (let di = -strokeCells; di <= strokeCells; di++) {
-                const ii = i + di, jj = j + dj;
-                if (ii < 0 || jj < 0 || ii >= gw || jj >= gh) continue;
-                if (white[jj * gw + ii]) { c = 0; break outer; }
-              }
+          const chars = Array.from(txt);
+          let prefix = '';
+          chars.forEach((ch) => {
+            // each glyph gets its own pixel-grid phase so its dither lines up exactly
+            const cx0 = x0 + o.measureText(prefix).width;
+            prefix += ch;
+            if (!ch.trim()) return;
+            o.clearRect(0, 0, W, H);
+            o.fillStyle = '#fff';
+            o.fillText(ch, cx0, base);
+            const ox = cx0 + 0.006 * fsR, oy = base - 0.006 * fsR;
+            const pad = strokeCells + 1;
+            const cw = o.measureText(ch).width;
+            const iMin = -pad - Math.ceil(fsR * 0.15 / u), iMax = Math.ceil((cw + fsR * 0.35) / u) + pad;
+            const jMin = -Math.ceil(asc / u) - pad, jMax = Math.ceil(desc / u) + pad;
+            const gw = iMax - iMin + 1, gh = jMax - jMin + 1;
+            const bx = Math.max(0, Math.floor(ox + iMin * u)), by = Math.max(0, Math.floor(oy + jMin * u));
+            const bw = Math.min(W - bx, gw * u + 2), bh = Math.min(H - by, gh * u + 2);
+            if (bw <= 0 || bh <= 0) return;
+            const d = o.getImageData(bx, by, bw, bh).data;
+            const white = new Uint8Array(gw * gh);
+            for (let j = jMin; j <= jMax; j++) for (let i = iMin; i <= iMax; i++) {
+              const cx = Math.floor(ox + (i + 0.5) * u) - bx, cy = Math.floor(oy + (j + 0.5) * u) - by;
+              if (cx < 0 || cy < 0 || cx >= bw || cy >= bh) continue;
+              if (d[(cy * bw + cx) * 4 + 3] > 127) white[(j - jMin) * gw + (i - iMin)] = 1;
             }
-            if (c < 0) continue;
-            pts.push(Math.round(ox + (i + iMin) * u), Math.round(oy + (j + jMin) * u), c);
-          }
+            for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+              const k = j * gw + i;
+              let c = -1;
+              if (white[k]) c = 1;
+              else {
+                outer: for (let dj = -strokeCells; dj <= strokeCells; dj++) for (let di = -strokeCells; di <= strokeCells; di++) {
+                  const ii = i + di, jj = j + dj;
+                  if (ii < 0 || jj < 0 || ii >= gw || jj >= gh) continue;
+                  if (white[jj * gw + ii]) { c = 0; break outer; }
+                }
+              }
+              if (c < 0) continue;
+              pts.push(Math.round(ox + (i + iMin) * u), Math.round(oy + (j + jMin) * u), c);
+            }
+          });
         });
         n = pts.length / 3;
         hx = new Float32Array(n); hy = new Float32Array(n); x = new Float32Array(n); y = new Float32Array(n);
@@ -829,7 +841,7 @@ class Component extends DCLogic {
         const c = pass ? WHITE : BLACK;
         for (let k = 0; k < n; k++) {
           if (col[k] !== pass) continue;
-          const px = Math.round(x[k] / u) * u + (Math.round(hx[k]) % u), py = Math.round(y[k] / u) * u + (Math.round(hy[k]) % u);
+          const px = Math.round(hx[k] + Math.round((x[k] - hx[k]) / u) * u), py = Math.round(hy[k] + Math.round((y[k] - hy[k]) / u) * u);
           if (px < 0 || py < 0 || px > W - u || py > H - u) continue;
           for (let r = 0; r < u; r++) { const i = (py + r) * W + px; for (let q = 0; q < u; q++) buf[i + q] = c; }
         }
@@ -862,28 +874,25 @@ class Component extends DCLogic {
       const stirring = on && (Math.abs(mvx) + Math.abs(mvy) > 20);
       if (resting && !stirring) return;
       const f60 = dt * 60, R = u * 30, R2 = R * R;
+      const spring = (stirring ? 0.012 : 0.032) * f60, damp = Math.pow(stirring ? 0.925 : 0.88, f60);
       let moving = false;
       for (let k = 0; k < n; k++) {
-        const h = ((k * 2654435761) % 1000) / 1000;
-        if (stirring && h < 0.4) {
+        let ax = (hx[k] - x[k]) * spring, ay = (hy[k] - y[k]) * spring;
+        if (stirring) {
           const dx = x[k] - mx, dy = y[k] - my, d2 = dx * dx + dy * dy;
           if (d2 < R2) {
-            const fall = 1 - Math.sqrt(d2) / R;
-            const f = fall * (0.012 + h * 0.016) * f60;
-            vx[k] += mvx * f * (0.6 + h) - dy * fall * 0.02 * f60;
-            vy[k] += mvy * f * (0.6 + h) + dx * fall * 0.02 * f60;
-            free[k] = Math.max(free[k], 0.5 + h * 0.9);
+            const fall = 1 - Math.sqrt(d2) / R, f = fall * fall * 0.0065 * f60;
+            const jit = 0.55 + ((k * 2654435761) % 1000) / 1100;
+            ax += mvx * f * jit - dy * fall * 0.035 * f60;
+            ay += mvy * f * jit + dx * fall * 0.035 * f60;
           }
         }
-        const loose = free[k] > 0;
-        if (loose) free[k] -= dt;
-        const spring = (loose ? 0.0025 : 0.03) * f60, damp = Math.pow(loose ? 0.965 : 0.86, f60);
-        vx[k] = (vx[k] + (hx[k] - x[k]) * spring) * damp; vy[k] = (vy[k] + (hy[k] - y[k]) * spring) * damp;
+        vx[k] = (vx[k] + ax) * damp; vy[k] = (vy[k] + ay) * damp;
         x[k] += vx[k] * f60; y[k] += vy[k] * f60;
-        if (!moving && (loose || Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
+        if (!moving && (Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
       }
       if (!moving && !stirring) {
-        for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; free[k] = 0; }
+        for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; }
         draw(); resting = true; return;
       }
       resting = false;
