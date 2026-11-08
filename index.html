@@ -64,6 +64,7 @@ a:hover{color:var(--accent)}
 .chip:hover{border-color:var(--accent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .chip:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .nowplaying{animation:npIn .5s steps(6) both}@keyframes npIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}@media (max-width:640px){.nowplaying{display:none}}
+.soundbar{transition:opacity .9s ease}.soundbar.idle{opacity:.16}
 .mctls{animation:npIn .45s steps(6) both}.mctl svg{flex:none}
 .copiedmsg{display:inline-block;animation:npIn .45s steps(6) both}
 .chip.on{background:#F2EEFA;color:#000000;border-color:#F2EEFA;text-shadow:none}
@@ -107,7 +108,7 @@ a:hover{color:var(--accent)}
 
 <canvas class="navfx" ref="{{setNavFx}}" aria-hidden="true"></canvas>
 <audio ref="{{setAudio}}" preload="auto"></audio>
-<div class="soundbar" style="position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none">
+<div class="soundbar" ref="{{setSoundbar}}" style="position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none">
 <sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><div class="mctls" style="display: flex; gap: 8px"><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)" onClick="{{prevTrack}}" aria-label="Previous track" title="Previous track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="4" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect><rect x="6" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect></svg></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)" onClick="{{togglePause}}" aria-label="{{pauseLabel}}" title="{{pauseLabel}}"><sc-if value="{{trackPlaying}}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="2" height="6"></rect><rect x="5" y="1" width="2" height="6"></rect></svg></sc-if><sc-if value="{{trackPaused}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="2" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="6" y="3" width="1" height="2"></rect></svg></sc-if></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)" onClick="{{nextTrack}}" aria-label="Next track" title="Next track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="1" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect></svg></button></div></sc-if>
 <div style="display: flex; align-items: center; gap: 14px">
 <sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><p class="nowplaying" aria-live="polite" style="margin: 0; font-family: 'Pixelta', 'Geist Mono', monospace; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: #F2EEFA; text-shadow: 0 0 12px rgba(178, 140, 220, .55), 0 1px 2px #000"><span style="opacity: .6">{{npLabel}}</span> — {{trackName}} <span style="opacity: .6">by</span> Passing Currents</p></sc-if>
@@ -274,7 +275,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794177764"></script>
+<script src="runtime.js?v=1794178206"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -423,6 +424,30 @@ class Component extends DCLogic {
         el.src = this.tracks[this.state.track || 0].src;
         el.addEventListener('ended', () => this.changeTrack(1));
       }
+    };
+    this.setSoundbar = (el) => {
+      if (!el || el._sbWired) return;
+      if (this.sbOff) { this.sbOff(); this.sbOff = null; }
+      el._sbWired = true; this.sbEl = el;
+      let inside = false;
+      const arm = () => {
+        clearTimeout(this.sbTo);
+        this.sbTo = setTimeout(() => {
+          // still under the cursor or keyboard focus → keep it awake and check again later
+          if (el.matches(':hover') || el.querySelector(':focus-visible')) { arm(); return; }
+          inside = false; el.classList.add('idle');
+        }, 3000);
+      };
+      const wake = () => { el.classList.remove('idle'); };
+      const enter = () => { inside = true; wake(); arm(); };
+      const leave = (e) => { if (e.relatedTarget && el.contains(e.relatedTarget)) return; inside = false; arm(); };
+      const fin = () => { wake(); arm(); };
+      const fout = () => { if (!inside) arm(); };
+      el.addEventListener('pointerover', enter); el.addEventListener('pointerout', leave);
+      el.addEventListener('focusin', fin); el.addEventListener('focusout', fout);
+      el.addEventListener('touchstart', () => { wake(); arm(); }, { passive: true });
+      arm();
+      this.sbOff = () => { clearTimeout(this.sbTo); el.removeEventListener('pointerover', enter); el.removeEventListener('pointerout', leave); el.removeEventListener('focusin', fin); el.removeEventListener('focusout', fout); };
     };
     this.changeTrack = (dir) => {
       const a = this.audio; if (!a) return;
@@ -1911,6 +1936,7 @@ class Component extends DCLogic {
       videoRef: this.videoRef,
       vidFxRef: this.vidFxRef,
       setAudio: this.setAudio,
+      setSoundbar: this.setSoundbar,
       prevTrack: this.prevTrack,
       nextTrack: this.nextTrack,
       togglePause: this.togglePause,
