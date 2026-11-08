@@ -43,6 +43,7 @@ a:hover{color:var(--accent)}
 .ic-artstation{-webkit-mask-image:url('assets/icons/artstation.png');mask-image:url('assets/icons/artstation.png')}
 .ic-cv{-webkit-mask-image:url('assets/icons/cv.png');mask-image:url('assets/icons/cv.png')}
 .artfx.swirlfx{opacity:.4}
+.artfx.tunnelfx{opacity:.38}
 .navfx{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:60;pointer-events:none;image-rendering:pixelated}
 #art > div,#art > a,#about > h2,#about > div,#contact > h2,#contact > a,#contact > div{position:relative;z-index:1}
 .flame.dflame{left:50%;right:auto;width:100vw;transform:translateX(-50%);opacity:.15}
@@ -212,7 +213,7 @@ a:hover{color:var(--accent)}
 
 <section id="about" ref="{{refAbout}}" class="{{clsAbout}}" aria-labelledby="t-about" style="padding: 120px 0 40px">
 <canvas class="dmask" ref="{{maskAbout}}" aria-hidden="true"></canvas>
-<canvas class="artfx" ref="{{setAboutFx}}" aria-hidden="true"></canvas>
+<canvas class="artfx tunnelfx" ref="{{setAboutFx}}" aria-hidden="true"></canvas>
 <h2 id="t-about" class="bob bobs" style="animation-delay: -2.7s; margin: 0 0 44px; font-family: 'Lochley', 'Dither Byte', 'Pixelta', monospace; color: #FFFFFF; font-size: clamp(56px, 8vw, 128px); font-weight: 400; line-height: 1; letter-spacing: .01em; text-transform: uppercase">About me<span style="font-family: 'Pixelta', 'Geist Mono', monospace; font-size: clamp(16px, 1.7vw, 24px); text-transform: none; letter-spacing: .02em; color: #EDE7F7; margin-left: .7em; vertical-align: middle; white-space: nowrap">- My humble beginnings</span></h2>
 <div style="display: flex; flex-wrap: wrap; gap: 56px 80px">
 <p class="stag" style="flex: 2 1 520px; margin: 0; font-size: clamp(22px, 2.4vw, 34px); line-height: 1.4">I like games that get your body moving and your nerves going. I work across Unity programming, 3D modelling and concept art, almost always as part of a team, and I am looking for an internship where I can grow in <span style="color: var(--accent)">[AREA: game design / tech art / 3D]</span>.</p>
@@ -254,7 +255,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794154795"></script>
+<script src="runtime.js?v=1794156504"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -645,6 +646,47 @@ class Component extends DCLogic {
         pp2.forEach((p3) => { ctx.fillStyle = p3[0]; ctx.fill(p3[1]); });
     };
 
+    const drawTunnel = (cv) => {
+      if (!cv || !cv.getContext) return;
+      const rc = cv.getBoundingClientRect();
+      if (rc.bottom < 0 || rc.top > (window.innerHeight || 900)) return;
+      const W = cv.clientWidth, H = cv.clientHeight;
+      if (!W || !H) return;
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, W, H);
+      const P = this.props;
+      const bg = P.corFundo ?? '#000000', dith = P.corDither ?? '#4B3161', lite = P.corCursor ?? '#A57FD0', acc = P.corDestaque ?? '#B48CFF';
+      const pal = [mixHex(bg, dith, 0.45), dith, mixHex(dith, lite, 0.5), lite, acc, mixHex(acc, '#FFFFFF', 0.7)];
+      const cell = Math.max(4, Math.round(Number(P.tamanhoPixel ?? 3) * 2));
+      const cols = Math.ceil(W / cell), rows = Math.ceil(H / cell);
+      const cx = W * 0.68, cy = H * 0.5, R0 = Math.max(W * 0.55, H);
+      const paths = pal.map(() => new Path2D());
+      const TAU = Math.PI * 2;
+      for (let r = 0; r < rows; r++) {
+        const py = (r + 0.5) * cell - cy;
+        for (let c = 0; c < cols; c++) {
+          const px = (c + 0.5) * cell - cx;
+          const rr = Math.sqrt(px * px + py * py) / R0;
+          const a = (Math.atan2(py, px) + Math.PI) / TAU;
+          const z = 1 / (rr + 0.045);
+          // radial light streaks rushing outward + rings of depth
+          const streak = vnoise(a * 56, z * 0.35 - t * 2.4);
+          const fine = vnoise(a * 140 + 7.3, z * 0.9 - t * 4.1);
+          const ring = 0.5 + 0.5 * Math.sin(z * 1.4 - t * 6);
+          const core = Math.exp(-rr * 5.5);
+          const vign = Math.max(0, 1 - Math.pow(rr / 1.05, 2.2));
+          let v = (Math.pow(streak, 2.2) * 0.9 + fine * 0.25 + ring * 0.12) * (0.35 + rr * 1.1) * vign + core * 0.9;
+          if (rr < 0.035) v = core * 1.2;
+          let lv = Math.floor(v * 6 + B[(r % 8) * 8 + (c % 8)] - 0.35);
+          if (lv <= 0) continue;
+          if (lv > 6) lv = 6;
+          paths[lv - 1].rect(c * cell, r * cell, cell, cell);
+        }
+      }
+      paths.forEach((pp, i) => { ctx.fillStyle = pal[i]; ctx.fill(pp); });
+    };
+
     const drawSwirl = (cv, step) => {
       if (!cv || !cv.getContext) return;
       const rc = cv.getBoundingClientRect();
@@ -712,7 +754,8 @@ class Component extends DCLogic {
       const dt = Math.min(0.1, (now - last) / 1000); last = now; t += dt; acc += dt;
       if (acc < 1 / 30) return;
       const step = acc; acc = 0;
-      const list = [[this.artCv, [0, 1], partsArt], [this.fxCv.about, [1], partsAbout], ];
+      const list = [[this.artCv, [0, 1], partsArt], ];
+      drawTunnel(this.fxCv.about, step);
       drawSwirl(this.fxCv.contact, step);
       Object.keys(this.fxCv).forEach((k) => { if (k.indexOf('d:') === 0 && this.fxCv[k]) { const pk = partsD[k] || (partsD[k] = []); list.push([this.fxCv[k], ['b'], pk]); } });
       list.forEach((it) => draw(it[0], it[1], it[2], step));
