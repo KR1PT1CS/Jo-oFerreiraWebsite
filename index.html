@@ -255,7 +255,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794167384"></script>
+<script src="runtime.js?v=1794167534"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -808,7 +808,7 @@ class Component extends DCLogic {
     let free = null;
     let intro = false, introT = 0, introDone = false, dl = null;
     let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
-    let u = 3, sc = 1, M = 0;
+    let u = 3, sc = 1, M = 0, MX = 0;
     let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
     const build = async () => {
       const cv = this.nameCv, h1 = this.nameEl;
@@ -828,10 +828,13 @@ class Component extends DCLogic {
         sc = 1;
         M = u * 60;
         try { await document.fonts.load(fsR + 'px "Dither Byte"', 'João Ferreira'); } catch (e) {}
+        try { await document.fonts.ready; } catch (e) {}
         const sr = span.getBoundingClientRect();
-        W = Math.ceil(sr.width / sc) + 2 * M; H = Math.ceil(sr.height / sc) + 2 * M;
+        // canvas reaches both screen edges so pixels can fly in from left and right
+        MX = Math.max(M, Math.ceil(Math.max(sr.left, (window.innerWidth || sr.right) - sr.right)) + 24);
+        W = Math.ceil(sr.width / sc) + 2 * MX; H = Math.ceil(sr.height / sc) + 2 * M;
         cv.width = W; cv.height = H;
-        cv.style.left = (-M * sc) + 'px'; cv.style.top = (-M * sc) + 'px';
+        cv.style.left = (-MX * sc) + 'px'; cv.style.top = (-M * sc) + 'px';
         cv.style.width = (W * sc) + 'px'; cv.style.height = (H * sc) + 'px';
         const off = document.createElement('canvas'); off.width = W; off.height = H;
         const o = off.getContext('2d', { willReadFrequently: true });
@@ -846,7 +849,7 @@ class Component extends DCLogic {
           const txt = nd.nodeValue.trim();
           const rg = document.createRange(); rg.selectNodeContents(nd);
           const rc = rg.getBoundingClientRect();
-          const x0 = (rc.left - sr.left) / sc + M;
+          const x0 = (rc.left - sr.left) / sc + MX;
           const base = Math.round((rc.top - sr.top) / sc + M + asc);
           const chars = Array.from(txt);
           let prefix = '';
@@ -908,15 +911,19 @@ class Component extends DCLogic {
         if (!introDone) {
           // first load: pixels start scattered and drift in to assemble the name, left to right
           dl = new Float32Array(n);
-          const spanW = W - 2 * M;
+          const spanW = W - 2 * MX;
+          const cr = cv.getBoundingClientRect();
+          const scrL = -cr.left, scrR = (window.innerWidth || W) - cr.left;
           for (let k = 0; k < n; k++) {
-            const a = Math.random() * Math.PI * 2, rad = (0.35 + Math.random() * 0.65) * Math.max(W, H) * 0.55;
-            x[k] = hx[k] + Math.cos(a) * rad + (Math.random() - 0.5) * 60;
-            y[k] = hy[k] + Math.sin(a) * rad * 0.55;
-            vx[k] = (Math.random() - 0.5) * 2; vy[k] = (Math.random() - 0.5) * 2;
-            dl[k] = Math.max(0, (hx[k] - M) / Math.max(1, spanW)) * 0.9 + Math.random() * 0.5;
+            const rel = (hx[k] - MX) / Math.max(1, spanW);
+            // pixels for the left half of the name come from the left edge, the rest from the right
+            const fromLeft = Math.random() < (1 - rel) * 0.8 + 0.1;
+            x[k] = fromLeft ? scrL - Math.random() * 160 : scrR + Math.random() * 160;
+            y[k] = hy[k] + (Math.random() - 0.5) * H * 0.9;
+            vx[k] = 0; vy[k] = (Math.random() - 0.5) * 2;
+            dl[k] = Math.random() * 1.1 + Math.abs(rel - 0.5) * 0.3;
           }
-          intro = true; introT = 0; introDone = true;
+          intro = true; introT = 0;
         }
         ctx = cv.getContext('2d');
         img = ctx.createImageData(W, H); buf = new Uint32Array(img.data.buffer);
@@ -991,6 +998,7 @@ class Component extends DCLogic {
         if (!moving && (Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
       }
       if (!moving && !stirring) {
+        if (intro) introDone = true;
         intro = false;
         for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; }
         draw(); resting = true; return;
