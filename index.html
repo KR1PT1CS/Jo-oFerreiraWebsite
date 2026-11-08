@@ -250,7 +250,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794150382"></script>
+<script src="runtime.js?v=1794150726"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -741,10 +741,11 @@ class Component extends DCLogic {
   }
 
   startNameFx() {
-    const M = 90, cell = 2;
+    // The name is rebuilt from the font's own pixel grid (Dither Byte = 20/1000 em per pixel),
+    // so every font pixel - including its dither holes - becomes one particle.
     let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
-    let key = '', building = false, resting = false, lastCheck = 0, last = performance.now();
-    let pm = null;
+    let u = 3, sc = 1, M = 0;
+    let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
     const build = async () => {
       const cv = this.nameCv, h1 = this.nameEl;
       if (!cv || !h1) return;
@@ -753,37 +754,61 @@ class Component extends DCLogic {
         const span = cv.parentElement;
         const cs = getComputedStyle(h1);
         const fs = parseFloat(cs.fontSize);
-        try { await document.fonts.load(fs + 'px "Dither Byte"', 'João Ferreira'); } catch (e) {}
+        u = Math.max(2, Math.round(fs * 0.02));
+        const fsR = u * 50;
+        sc = fs / fsR;
+        M = u * 60;
+        try { await document.fonts.load(fsR + 'px "Dither Byte"', 'João Ferreira'); } catch (e) {}
         const sr = span.getBoundingClientRect();
-        W = Math.ceil(sr.width) + 2 * M; H = Math.ceil(sr.height) + 2 * M;
+        W = Math.ceil(sr.width / sc) + 2 * M; H = Math.ceil(sr.height / sc) + 2 * M;
         cv.width = W; cv.height = H;
-        cv.style.left = -M + 'px'; cv.style.top = -M + 'px';
-        cv.style.width = W + 'px'; cv.style.height = H + 'px';
+        cv.style.left = (-M * sc) + 'px'; cv.style.top = (-M * sc) + 'px';
+        cv.style.width = (W * sc) + 'px'; cv.style.height = (H * sc) + 'px';
         const off = document.createElement('canvas'); off.width = W; off.height = H;
-        const o = off.getContext('2d');
-        o.font = cs.fontWeight + ' ' + fs + 'px ' + cs.fontFamily;
+        const o = off.getContext('2d', { willReadFrequently: true });
+        o.font = cs.fontWeight + ' ' + fsR + 'px "Dither Byte"';
         o.textBaseline = 'alphabetic';
-        const asc = o.measureText('João').fontBoundingBoxAscent || fs * 0.8;
-        o.lineJoin = 'miter'; o.miterLimit = 4;
-        o.lineWidth = parseFloat(cs.webkitTextStrokeWidth) || 10;
-        o.strokeStyle = '#000'; o.fillStyle = '#fff';
-        const lines = [];
+        const mt = o.measureText('João');
+        const asc = mt.fontBoundingBoxAscent || fsR * 0.8, desc = mt.fontBoundingBoxDescent || fsR * 0.2;
+        const strokeCells = Math.max(1, Math.round(5 / (u * sc)));
+        const pts = [];
         span.childNodes.forEach((nd) => {
           if (nd.nodeType !== 3 || !nd.nodeValue.trim()) return;
+          const txt = nd.nodeValue.trim();
           const rg = document.createRange(); rg.selectNodeContents(nd);
           const rc = rg.getBoundingClientRect();
-          lines.push([nd.nodeValue.trim(), rc.left - sr.left + M, rc.top - sr.top + M + asc]);
+          const x0 = Math.round((rc.left - sr.left) / sc + M);
+          const base = Math.round((rc.top - sr.top) / sc + M + asc);
+          o.clearRect(0, 0, W, H);
+          o.fillStyle = '#fff';
+          o.fillText(txt, x0, base);
+          const d = o.getImageData(0, 0, W, H).data;
+          const ox = x0 + 0.006 * fsR, oy = base - 0.006 * fsR;
+          const pad = strokeCells + 1;
+          const iMin = -pad - Math.ceil(fsR * 0.15 / u), iMax = Math.ceil((o.measureText(txt).width + fsR * 0.35) / u) + pad;
+          const jMin = -Math.ceil(asc / u) - pad, jMax = Math.ceil(desc / u) + pad;
+          const gw = iMax - iMin + 1, gh = jMax - jMin + 1;
+          const white = new Uint8Array(gw * gh);
+          for (let j = jMin; j <= jMax; j++) for (let i = iMin; i <= iMax; i++) {
+            const cx = Math.floor(ox + (i + 0.5) * u), cy = Math.floor(oy + (j + 0.5) * u);
+            if (cx < 0 || cy < 0 || cx >= W || cy >= H) continue;
+            if (d[(cy * W + cx) * 4 + 3] > 127) white[(j - jMin) * gw + (i - iMin)] = 1;
+          }
+          for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+            const k = j * gw + i;
+            let c = -1;
+            if (white[k]) c = 1;
+            else {
+              outer: for (let dj = -strokeCells; dj <= strokeCells; dj++) for (let di = -strokeCells; di <= strokeCells; di++) {
+                const ii = i + di, jj = j + dj;
+                if (ii < 0 || jj < 0 || ii >= gw || jj >= gh) continue;
+                if (white[jj * gw + ii]) { c = 0; break outer; }
+              }
+            }
+            if (c < 0) continue;
+            pts.push(Math.round(ox + (i + iMin) * u), Math.round(oy + (j + jMin) * u), c);
+          }
         });
-        lines.forEach((l) => o.strokeText(l[0], l[1], l[2]));
-        lines.forEach((l) => o.fillText(l[0], l[1], l[2]));
-        const d = o.getImageData(0, 0, W, H).data;
-        const pts = [];
-        for (let yy = 0; yy < H; yy += cell) for (let xx = 0; xx < W; xx += cell) {
-          const i = ((yy + (cell >> 1)) * W + xx + (cell >> 1)) * 4;
-          if (d[i + 3] < 110) continue;
-          const lum = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
-          pts.push(xx, yy, lum > 128 ? 1 : 0);
-        }
         n = pts.length / 3;
         hx = new Float32Array(n); hy = new Float32Array(n); x = new Float32Array(n); y = new Float32Array(n);
         vx = new Float32Array(n); vy = new Float32Array(n); col = new Uint8Array(n);
@@ -798,12 +823,15 @@ class Component extends DCLogic {
     const WHITE = 0xFFFFFFFF, BLACK = 0xFF000000;
     const draw = () => {
       buf.fill(0);
-      for (let k = 0; k < n; k++) {
-        const px = Math.round(x[k]), py = Math.round(y[k]);
-        if (px < 0 || py < 0 || px > W - cell || py > H - cell) continue;
-        const c = col[k] ? WHITE : BLACK;
-        let i = py * W + px;
-        buf[i] = c; buf[i + 1] = c; i += W; buf[i] = c; buf[i + 1] = c;
+      // black outline first, white on top - same as the font's stroke-under-fill
+      for (let pass = 0; pass < 2; pass++) {
+        const c = pass ? WHITE : BLACK;
+        for (let k = 0; k < n; k++) {
+          if (col[k] !== pass) continue;
+          const px = Math.round(x[k] / u) * u + (Math.round(hx[k]) % u), py = Math.round(y[k] / u) * u + (Math.round(hy[k]) % u);
+          if (px < 0 || py < 0 || px > W - u || py > H - u) continue;
+          for (let r = 0; r < u; r++) { const i = (py + r) * W + px; for (let q = 0; q < u; q++) buf[i + q] = c; }
+        }
       }
       ctx.putImageData(img, 0, 0);
     };
@@ -824,31 +852,31 @@ class Component extends DCLogic {
       let mvx = 0, mvy = 0, mx = -1e5, my = -1e5;
       if (on) {
         const cr = cv.getBoundingClientRect();
-        mx = this.mouseClient[0] - cr.left; my = this.mouseClient[1] - cr.top;
+        mx = (this.mouseClient[0] - cr.left) / sc; my = (this.mouseClient[1] - cr.top) / sc;
         if (pm) { mvx = (mx - pm[0]) / Math.max(dt, 0.008); mvy = (my - pm[1]) / Math.max(dt, 0.008); }
         const sp = Math.hypot(mvx, mvy);
-        if (sp > 3000) { mvx *= 3000 / sp; mvy *= 3000 / sp; }
+        if (sp > 4000) { mvx *= 4000 / sp; mvy *= 4000 / sp; }
         pm = [mx, my];
       } else pm = null;
       const stirring = on && (Math.abs(mvx) + Math.abs(mvy) > 20);
       if (resting && !stirring) return;
-      const f60 = dt * 60, R = 120, R2 = R * R;
-      const spring = 0.028 * f60, damp = Math.pow(0.87, f60);
+      const f60 = dt * 60, R = u * 60, R2 = R * R;
+      const spring = (stirring ? 0.012 : 0.032) * f60, damp = Math.pow(stirring ? 0.925 : 0.88, f60);
       let moving = false;
       for (let k = 0; k < n; k++) {
         let ax = (hx[k] - x[k]) * spring, ay = (hy[k] - y[k]) * spring;
         if (stirring) {
           const dx = x[k] - mx, dy = y[k] - my, d2 = dx * dx + dy * dy;
           if (d2 < R2) {
-            const fall = 1 - Math.sqrt(d2) / R, f = fall * fall * 0.0022 * f60;
-            const jit = 0.75 + ((k * 2654435761) % 1000) / 2000;
-            ax += mvx * f * jit - dy * fall * 0.02 * f60;
-            ay += mvy * f * jit + dx * fall * 0.02 * f60;
+            const fall = 1 - Math.sqrt(d2) / R, f = fall * fall * 0.0065 * f60;
+            const jit = 0.55 + ((k * 2654435761) % 1000) / 1100;
+            ax += mvx * f * jit - dy * fall * 0.035 * f60;
+            ay += mvy * f * jit + dx * fall * 0.035 * f60;
           }
         }
         vx[k] = (vx[k] + ax) * damp; vy[k] = (vy[k] + ay) * damp;
         x[k] += vx[k] * f60; y[k] += vy[k] * f60;
-        if (!moving && (Math.abs(x[k] - hx[k]) > 0.4 || Math.abs(y[k] - hy[k]) > 0.4 || Math.abs(vx[k]) > 0.05 || Math.abs(vy[k]) > 0.05)) moving = true;
+        if (!moving && (Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
       }
       if (!moving && !stirring) {
         for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; }
