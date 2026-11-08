@@ -264,7 +264,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794173438"></script>
+<script src="runtime.js?v=1794173860"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -417,8 +417,8 @@ class Component extends DCLogic {
       const vol = Math.max(0, Math.min(1, Number(this.props.volumeMusica ?? 0.12)));
       a.volume = 0;
       const pr = a.play();
-      if (pr && pr.then) pr.then(() => this.fadeVol(vol, 1400)).catch(() => {});
-      else this.fadeVol(vol, 1400);
+      if (pr && pr.then) pr.then(() => this.fadeVol(vol, 450)).catch(() => {});
+      else this.fadeVol(vol, 450);
     };
     this.toggleMusic = () => {
       const a = this.audio; if (!a) return;
@@ -840,14 +840,14 @@ class Component extends DCLogic {
       if (this.state.music && this.audio && this.audio.paused) this.startMusic();
       if (this.audio && !this.audio.paused) off();
     };
-    const evs = ['pointerdown', 'keydown', 'touchstart'];
+    const evs = ['pointerdown', 'mousedown', 'keydown', 'touchstart', 'click'];
     const off = () => evs.forEach((ev) => window.removeEventListener(ev, go, true));
     evs.forEach((ev) => window.addEventListener(ev, go, true));
     this.offSound = off;
     if (this.state.music && this.audio) {
       const a = this.audio; a.volume = 0;
       const pr = a.play();
-      if (pr && pr.then) pr.then(() => { this.fadeVol(Math.max(0, Math.min(1, Number(this.props.volumeMusica ?? 0.12))), 1400); }).catch(() => {});
+      if (pr && pr.then) pr.then(() => { this.fadeVol(Math.max(0, Math.min(1, Number(this.props.volumeMusica ?? 0.12))), 450); }).catch(() => {});
     }
   }
 
@@ -937,10 +937,29 @@ class Component extends DCLogic {
               const al = d[(cy * bw + cx) * 4 + 3];
               if (al > 127) white[j * gw + i] = 1;
             }
+            // find the letters' enclosed counters (the "o"/"a" holes) and fill them black;
+            // tiny gaps from the font's dither pattern are left alone
+            const hole = new Uint8Array(gw * gh), seen = new Uint8Array(gw * gh);
+            for (let s0 = 0; s0 < gw * gh; s0++) {
+              if (white[s0] || seen[s0]) continue;
+              const stack = [s0], comp = []; seen[s0] = 1;
+              let touches = false, minI = gw, maxI = 0, minJ = gh, maxJ = 0;
+              while (stack.length) {
+                const k = stack.pop(); comp.push(k);
+                const ci = k % gw, cj = (k / gw) | 0;
+                if (ci === 0 || cj === 0 || ci === gw - 1 || cj === gh - 1) touches = true;
+                if (ci < minI) minI = ci; if (ci > maxI) maxI = ci; if (cj < minJ) minJ = cj; if (cj > maxJ) maxJ = cj;
+                const nb = [ci > 0 ? k - 1 : -1, ci < gw - 1 ? k + 1 : -1, cj > 0 ? k - gw : -1, cj < gh - 1 ? k + gw : -1];
+                for (const q of nb) if (q >= 0 && !white[q] && !seen[q]) { seen[q] = 1; stack.push(q); }
+              }
+              const bwC = maxI - minI + 1, bhC = maxJ - minJ + 1;
+              if (!touches && comp.length >= 6 && bwC >= 2 && bhC >= 3 && comp.length / (bwC * bhC) >= 0.4) comp.forEach((k) => { hole[k] = 1; });
+            }
             for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
               const k = j * gw + i;
               let c = -1;
               if (white[k]) c = 1;
+              else if (hole[k]) c = 0;
               else {
                 outer: for (let dj = -strokeCells; dj <= strokeCells; dj++) for (let di = -strokeCells; di <= strokeCells; di++) {
                   const ii = i + di, jj = j + dj;
