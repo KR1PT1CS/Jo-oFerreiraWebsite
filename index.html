@@ -79,6 +79,8 @@ a:hover{color:var(--accent)}
 .bob{display:inline-block;animation:bob 3.6s steps(5,end) infinite alternate;will-change:transform}
 @keyframes bob{from{transform:translateY(5px)}to{transform:translateY(-7px)}}
 .stroke{-webkit-text-stroke:10px #000000;paint-order:stroke fill}
+.namecv{position:absolute;left:0;top:0;pointer-events:none;image-rendering:pixelated;filter:drop-shadow(0 0 8px rgba(255,255,255,.28)) drop-shadow(0 0 26px color-mix(in srgb,var(--glowc) 45%,transparent))}
+.name-live{color:transparent !important;-webkit-text-stroke:0 !important;text-shadow:none !important}
 .bobs{animation-name:bobs}
 @keyframes bobs{from{transform:translateY(2px)}to{transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){
@@ -115,7 +117,7 @@ a:hover{color:var(--accent)}
 </nav>
 
 <div id="top" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 0 clamp(20px, 4vw, 56px) 64px; display: flex; flex-direction: column; gap: 28px; pointer-events: none">
-<h1 class="name stroke" ref="{{setNameEl}}" style="margin: 0; font-family: 'Dither Byte', 'Pixelta', monospace; font-size: clamp(54px, 9.5vw, 150px); line-height: .92"><span class="bob">João<br>Ferreira</span></h1>
+<h1 class="name stroke" ref="{{setNameEl}}" style="margin: 0; font-family: 'Dither Byte', 'Pixelta', monospace; font-size: clamp(54px, 9.5vw, 150px); line-height: .92"><span class="bob" style="position: relative">João<br>Ferreira<canvas class="namecv" ref="{{setNameCv}}" aria-hidden="true"></canvas></span></h1>
 <div style="display: flex; flex-wrap: wrap; gap: 24px 64px; align-items: flex-end; justify-content: space-between">
 <p style="margin: 0; max-width: 780px; font-size: clamp(18px, 1.75vw, 24px); line-height: 1.55; color: #EDE7F7">Currently a 3rd year Videogame student at Universidade Lusofona. I work with a variety of art software since my main areas are 3D modelling, concept art and graphic design, such as Photoshop, Blender, Maya and Substance Painter. My main game software is Unity, and I also dabble with sound and video software such as Premiere Pro, After Effects and Reaper. I tend to lean on survival horror and first person shooter genres, and I try new art styles with each project release.</p>
 <p class="lbl" style="margin: 0">Lisbon, PT / Games and Art / 2026</p>
@@ -248,7 +250,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794149732"></script>
+<script src="runtime.js?v=1794150382"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -411,6 +413,8 @@ class Component extends DCLogic {
     this.nameEl = null;
     this.nameParts = [];
     this.setNameEl = (el) => { this.nameEl = el; };
+    this.nameCv = null;
+    this.setNameCv = (el) => { this.nameCv = el; };
     this.setCurFx = (el) => { this.curCv = el; };
     this.setNavFx = (el) => { this.navCv = el; };
     this.navHandlers = {};
@@ -737,62 +741,121 @@ class Component extends DCLogic {
   }
 
   startNameFx() {
-    const Bm = [0,32,8,40,2,34,10,42,48,16,56,24,50,18,58,26,12,44,4,36,14,46,6,38,60,28,52,20,62,30,54,22,3,35,11,43,1,33,9,41,51,19,59,27,49,17,57,25,15,47,7,39,13,45,5,37,63,31,55,23,61,29,53,21].map((v) => (v + 0.5) / 64);
-    const mc = document.createElement('canvas');
-    const mctx = mc.getContext('2d');
-    let D = null, nz = null, cols = 0, rows = 0, masked = false, last = performance.now();
-    const cell = 4;
-    const clearMask = (el) => { el.style.webkitMaskImage = ''; el.style.maskImage = ''; masked = false; };
+    const M = 90, cell = 2;
+    let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
+    let key = '', building = false, resting = false, lastCheck = 0, last = performance.now();
+    let pm = null;
+    const build = async () => {
+      const cv = this.nameCv, h1 = this.nameEl;
+      if (!cv || !h1) return;
+      building = true;
+      try {
+        const span = cv.parentElement;
+        const cs = getComputedStyle(h1);
+        const fs = parseFloat(cs.fontSize);
+        try { await document.fonts.load(fs + 'px "Dither Byte"', 'João Ferreira'); } catch (e) {}
+        const sr = span.getBoundingClientRect();
+        W = Math.ceil(sr.width) + 2 * M; H = Math.ceil(sr.height) + 2 * M;
+        cv.width = W; cv.height = H;
+        cv.style.left = -M + 'px'; cv.style.top = -M + 'px';
+        cv.style.width = W + 'px'; cv.style.height = H + 'px';
+        const off = document.createElement('canvas'); off.width = W; off.height = H;
+        const o = off.getContext('2d');
+        o.font = cs.fontWeight + ' ' + fs + 'px ' + cs.fontFamily;
+        o.textBaseline = 'alphabetic';
+        const asc = o.measureText('João').fontBoundingBoxAscent || fs * 0.8;
+        o.lineJoin = 'miter'; o.miterLimit = 4;
+        o.lineWidth = parseFloat(cs.webkitTextStrokeWidth) || 10;
+        o.strokeStyle = '#000'; o.fillStyle = '#fff';
+        const lines = [];
+        span.childNodes.forEach((nd) => {
+          if (nd.nodeType !== 3 || !nd.nodeValue.trim()) return;
+          const rg = document.createRange(); rg.selectNodeContents(nd);
+          const rc = rg.getBoundingClientRect();
+          lines.push([nd.nodeValue.trim(), rc.left - sr.left + M, rc.top - sr.top + M + asc]);
+        });
+        lines.forEach((l) => o.strokeText(l[0], l[1], l[2]));
+        lines.forEach((l) => o.fillText(l[0], l[1], l[2]));
+        const d = o.getImageData(0, 0, W, H).data;
+        const pts = [];
+        for (let yy = 0; yy < H; yy += cell) for (let xx = 0; xx < W; xx += cell) {
+          const i = ((yy + (cell >> 1)) * W + xx + (cell >> 1)) * 4;
+          if (d[i + 3] < 110) continue;
+          const lum = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+          pts.push(xx, yy, lum > 128 ? 1 : 0);
+        }
+        n = pts.length / 3;
+        hx = new Float32Array(n); hy = new Float32Array(n); x = new Float32Array(n); y = new Float32Array(n);
+        vx = new Float32Array(n); vy = new Float32Array(n); col = new Uint8Array(n);
+        for (let k = 0; k < n; k++) { hx[k] = x[k] = pts[k * 3]; hy[k] = y[k] = pts[k * 3 + 1]; col[k] = pts[k * 3 + 2]; }
+        ctx = cv.getContext('2d');
+        img = ctx.createImageData(W, H); buf = new Uint32Array(img.data.buffer);
+        key = sr.width.toFixed(0) + 'x' + sr.height.toFixed(0) + '@' + fs;
+        resting = false;
+        h1.classList.add('name-live');
+      } finally { building = false; }
+    };
+    const WHITE = 0xFFFFFFFF, BLACK = 0xFF000000;
+    const draw = () => {
+      buf.fill(0);
+      for (let k = 0; k < n; k++) {
+        const px = Math.round(x[k]), py = Math.round(y[k]);
+        if (px < 0 || py < 0 || px > W - cell || py > H - cell) continue;
+        const c = col[k] ? WHITE : BLACK;
+        let i = py * W + px;
+        buf[i] = c; buf[i + 1] = c; i += W; buf[i] = c; buf[i + 1] = c;
+      }
+      ctx.putImageData(img, 0, 0);
+    };
     const frame = (now) => {
       if (this.dead) return;
       requestAnimationFrame(frame);
       const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      const el = this.nameEl;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      const c = Math.ceil(r.width / cell), rr = Math.ceil(r.height / cell);
-      if (c !== cols || rr !== rows) {
-        cols = c; rows = rr; D = new Float32Array(cols * rows); nz = new Float32Array(cols * rows);
-        for (let i = 0; i < nz.length; i++) { const h = Math.sin(i * 12.9898 + 4.1) * 43758.5453; nz[i] = h - Math.floor(h); }
-        mc.width = cols; mc.height = rows;
+      const cv = this.nameCv, h1 = this.nameEl;
+      if (!cv || !h1 || building) return;
+      if (now - lastCheck > 600 || !n) {
+        lastCheck = now;
+        const sr = cv.parentElement.getBoundingClientRect();
+        const k2 = sr.width.toFixed(0) + 'x' + sr.height.toFixed(0) + '@' + parseFloat(getComputedStyle(h1).fontSize);
+        if (k2 !== key) { build(); return; }
       }
+      if (!n) return;
       const on = (this.props.interacaoRato ?? true) && this.mouseClient;
-      const mx = on ? this.mouseClient[0] - r.left : -1e5, my = on ? this.mouseClient[1] - r.top : -1e5;
-      const R = Math.max(70, r.height * 0.32);
-      let any = false;
-      const img = mctx.createImageData(cols, rows);
-      const px = img.data;
-      for (let j = 0; j < rows; j++) {
-        for (let i = 0; i < cols; i++) {
-          const k = j * cols + i;
-          let d = D[k];
-          if (on) {
-            const dx = (i + 0.5) * cell - mx, dy = (j + 0.5) * cell - my;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < R) {
-              const before = d;
-              d = Math.min(1, d + Math.pow(1 - dist / R, 1.4) * (0.5 + nz[k]) * dt * 7);
-              if (before < 0.55 && d >= 0.55 && nz[k] > 0.72 && this.nameParts.length < 120) {
-                const a = Math.atan2(dy, dx) + (nz[k] - 0.5), sp = 30 + nz[k] * 80;
-                this.nameParts.push({ x: r.left + (i + 0.5) * cell, y: r.top + (j + 0.5) * cell, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 10, life: 0, max: 0.5 + nz[k] * 0.9, ci: 4 + (nz[k] > 0.86 ? 1 : 0), big: false });
-              }
-            }
+      let mvx = 0, mvy = 0, mx = -1e5, my = -1e5;
+      if (on) {
+        const cr = cv.getBoundingClientRect();
+        mx = this.mouseClient[0] - cr.left; my = this.mouseClient[1] - cr.top;
+        if (pm) { mvx = (mx - pm[0]) / Math.max(dt, 0.008); mvy = (my - pm[1]) / Math.max(dt, 0.008); }
+        const sp = Math.hypot(mvx, mvy);
+        if (sp > 3000) { mvx *= 3000 / sp; mvy *= 3000 / sp; }
+        pm = [mx, my];
+      } else pm = null;
+      const stirring = on && (Math.abs(mvx) + Math.abs(mvy) > 20);
+      if (resting && !stirring) return;
+      const f60 = dt * 60, R = 120, R2 = R * R;
+      const spring = 0.028 * f60, damp = Math.pow(0.87, f60);
+      let moving = false;
+      for (let k = 0; k < n; k++) {
+        let ax = (hx[k] - x[k]) * spring, ay = (hy[k] - y[k]) * spring;
+        if (stirring) {
+          const dx = x[k] - mx, dy = y[k] - my, d2 = dx * dx + dy * dy;
+          if (d2 < R2) {
+            const fall = 1 - Math.sqrt(d2) / R, f = fall * fall * 0.0022 * f60;
+            const jit = 0.75 + ((k * 2654435761) % 1000) / 2000;
+            ax += mvx * f * jit - dy * fall * 0.02 * f60;
+            ay += mvy * f * jit + dx * fall * 0.02 * f60;
           }
-          d = Math.max(0, d - dt * (0.45 + nz[k] * 0.35));
-          D[k] = d;
-          if (d > 0) any = true;
-          const hole = d > Bm[(j % 8) * 8 + (i % 8)];
-          px[k * 4 + 3] = hole ? 0 : 255;
         }
+        vx[k] = (vx[k] + ax) * damp; vy[k] = (vy[k] + ay) * damp;
+        x[k] += vx[k] * f60; y[k] += vy[k] * f60;
+        if (!moving && (Math.abs(x[k] - hx[k]) > 0.4 || Math.abs(y[k] - hy[k]) > 0.4 || Math.abs(vx[k]) > 0.05 || Math.abs(vy[k]) > 0.05)) moving = true;
       }
-      if (!any) { if (masked) clearMask(el); return; }
-      mctx.putImageData(img, 0, 0);
-      const url = 'url(' + mc.toDataURL() + ')';
-      el.style.webkitMaskImage = url; el.style.maskImage = url;
-      el.style.webkitMaskSize = '100% 100%'; el.style.maskSize = '100% 100%';
-      el.style.webkitMaskRepeat = 'no-repeat'; el.style.maskRepeat = 'no-repeat';
-      masked = true;
+      if (!moving && !stirring) {
+        for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; }
+        draw(); resting = true; return;
+      }
+      resting = false;
+      draw();
     };
     requestAnimationFrame(frame);
   }
@@ -1283,6 +1346,7 @@ class Component extends DCLogic {
       musicLabel: S.music ? 'Sound on' : 'Sound off',
       setCurFx: this.setCurFx,
       setNameEl: this.setNameEl,
+      setNameCv: this.setNameCv,
       navGames: this.navHandlers.games,
       navArt: this.navHandlers.art,
       navAbout: this.navHandlers.about,
