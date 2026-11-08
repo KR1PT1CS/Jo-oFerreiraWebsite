@@ -106,7 +106,7 @@ a:hover{color:var(--accent)}
 <canvas class="navfx" ref="{{setNavFx}}" aria-hidden="true"></canvas>
 <audio ref="{{setAudio}}" src="assets/audio/iudicium.mp4" loop="loop" preload="auto"></audio>
 <div class="soundbar" style="position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; align-items: center; gap: 14px; pointer-events: none">
-<sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><p class="nowplaying" aria-live="polite" style="margin: 0; font-family: 'Pixelta', 'Geist Mono', monospace; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: #F2EEFA; text-shadow: 0 0 12px rgba(178, 140, 220, .55), 0 1px 2px #000"><span style="opacity: .6">Now playing</span> — IUDICIUM</p></sc-if>
+<sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><p class="nowplaying" aria-live="polite" style="margin: 0; font-family: 'Pixelta', 'Geist Mono', monospace; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: #F2EEFA; text-shadow: 0 0 12px rgba(178, 140, 220, .55), 0 1px 2px #000"><span style="opacity: .6">Now playing</span> — IUDICIUM <span style="opacity: .6">by</span> Passing Currents</p></sc-if>
 <button class="chip sound" onClick="{{toggleMusic}}" aria-pressed="{{musicPressed}}" aria-label="Background music" style="pointer-events: auto; gap: 10px; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)">
 <sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true" style="flex: none"><rect x="0" y="3" width="2" height="2"></rect><rect x="2" y="2" width="1" height="4"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="5" y="2" width="1" height="1"></rect><rect x="5" y="5" width="1" height="1"></rect><rect x="6" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="1"></rect><rect x="7" y="6" width="1" height="1"></rect></svg></sc-if>
 <sc-if value="{{musicOff}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true" style="flex: none"><rect x="0" y="3" width="2" height="2"></rect><rect x="2" y="2" width="1" height="4"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="5" y="2" width="1" height="1"></rect><rect x="7" y="2" width="1" height="1"></rect><rect x="6" y="3" width="1" height="2"></rect><rect x="5" y="5" width="1" height="1"></rect><rect x="7" y="5" width="1" height="1"></rect></svg></sc-if>
@@ -268,7 +268,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794175253"></script>
+<script src="runtime.js?v=1794175633"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -859,7 +859,10 @@ class Component extends DCLogic {
     // The name is rebuilt from the font's own pixel grid (Dither Byte = 20/1000 em per pixel),
     // so every font pixel - including its dither holes - becomes one particle.
     let free = null;
-    let intro = false, introT = 0, introDone = false, dl = null;
+    let intro = false, introT = 0, introDone = false, dl = null, sx0 = null, sy0 = null, introEnd = 0;
+    const I_DUR = 1.7;
+    // speed curve for the intro: slow start, sharp rise, peak a bit early, long gentle slowdown
+    const iEase = (t) => { const q = 1 - Math.pow(1 - t, 1.45); return q * q * q * (q * (q * 6 - 15) + 10); };
     let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
     let u = 3, sc = 1, M = 0, MX = 0;
     let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
@@ -1068,7 +1071,7 @@ class Component extends DCLogic {
         for (let k = 0; k < n; k++) { hx[k] = x[k] = pts[k * 3]; hy[k] = y[k] = pts[k * 3 + 1]; col[k] = pts[k * 3 + 2]; }
         if (!introDone) {
           // first load: pixels start scattered and drift in to assemble the name, left to right
-          dl = new Float32Array(n);
+          dl = new Float32Array(n); sx0 = new Float32Array(n); sy0 = new Float32Array(n);
           const spanW = W - 2 * MX;
           const cr = cv.getBoundingClientRect();
           const scrL = -cr.left, scrR = (window.innerWidth || W) - cr.left;
@@ -1080,6 +1083,8 @@ class Component extends DCLogic {
             y[k] = hy[k] + (Math.random() - 0.5) * H * 0.9;
             vx[k] = 0; vy[k] = (Math.random() - 0.5) * 2;
             dl[k] = Math.random() * 1.1 + Math.abs(rel - 0.5) * 0.3;
+            sx0[k] = x[k]; sy0[k] = y[k];
+            introEnd = Math.max(introEnd, dl[k] + I_DUR);
           }
           intro = true; introT = 0;
         }
@@ -1136,6 +1141,18 @@ class Component extends DCLogic {
       const spring = (stirring ? 0.012 : 0.032) * f60, damp = Math.pow(stirring ? 0.925 : 0.88, f60);
       const iSpring = 0.022 * f60, iDamp = Math.pow(0.86, f60);
       let moving = false;
+      if (intro) {
+        for (let k = 0; k < n; k++) {
+          const t = Math.min(1, Math.max(0, (introT - dl[k]) / I_DUR));
+          const e = iEase(t), arc = Math.sin(Math.PI * e) * (((k * 2654435761) % 1000) / 1000 - 0.5) * u * 14;
+          x[k] = sx0[k] + (hx[k] - sx0[k]) * e;
+          y[k] = sy0[k] + (hy[k] - sy0[k]) * e + arc;
+          if (t <= 0) { x[k] += Math.sin(introT * 3 + k) * u * 0.6; y[k] += Math.cos(introT * 2.3 + k * 1.7) * u * 0.6; }
+          vx[k] = vy[k] = 0;
+        }
+        if (introT >= introEnd) { intro = false; introDone = true; for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; } draw(); resting = true; return; }
+        resting = false; draw(); return;
+      }
       for (let k = 0; k < n; k++) {
         const waiting = intro && introT < dl[k];
         const sp2 = intro ? (waiting ? 0.0006 * f60 : iSpring) : spring;
