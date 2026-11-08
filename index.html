@@ -64,6 +64,7 @@ a:hover{color:var(--accent)}
 .chip:hover{border-color:var(--accent);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 30%,transparent)}
 .chip:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .nowplaying{animation:npIn .5s steps(6) both}@keyframes npIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}@media (max-width:640px){.nowplaying{display:none}}
+.copiedmsg{display:inline-block;animation:npIn .45s steps(6) both}
 .chip.on{background:#F2EEFA;color:#000000;border-color:#F2EEFA;text-shadow:none}
 .tag{display:inline-flex;background:color-mix(in srgb,var(--bg) 72%,transparent);padding:6px 11px;border:1px solid rgba(180,140,255,.26);border-radius:0;font-size:13px;letter-spacing:.04em;color:#DCD3EC}
 .dot{width:8px;height:8px;border-radius:0;background:var(--accent);animation:pulse 2.4s ease-out infinite}
@@ -252,7 +253,8 @@ a:hover{color:var(--accent)}
 <canvas class="artfx swirlfx" ref="{{setContactFx}}" aria-hidden="true"></canvas>
 <h2 id="t-contact" class="bob bobs" style="animation-delay: -3.6s; margin: 0 0 44px; font-family: 'Lochley', 'Dither Byte', 'Pixelta', monospace; color: #FFFFFF; font-size: clamp(56px, 8vw, 128px); font-weight: 400; line-height: 1; letter-spacing: .01em; text-transform: uppercase">Contact<span style="font-family: 'Pixelta', 'Geist Mono', monospace; font-size: clamp(16px, 1.7vw, 24px); text-transform: none; letter-spacing: .02em; color: #EDE7F7; margin-left: .7em; vertical-align: middle; white-space: nowrap">- I am always up to chat</span></h2>
 <canvas class="emailfx" ref="{{setEmailCv}}" aria-hidden="true"></canvas>
-<a href="mailto:kr1pt1csbuisness@gmail.com" class="biglink stag" ref="{{setEmailEl}}" onMouseEnter="{{emailEnter}}" onMouseLeave="{{emailLeave}}" onFocus="{{emailEnter}}" onBlur="{{emailLeave}}">kr1pt1csbuisness@gmail.com</a>
+<a href="mailto:kr1pt1csbuisness@gmail.com" class="biglink stag" ref="{{setEmailEl}}" onMouseEnter="{{emailEnter}}" onMouseLeave="{{emailLeave}}" onFocus="{{emailEnter}}" onBlur="{{emailLeave}}" onClick="{{copyEmail}}" title="Click to copy">kr1pt1csbuisness@gmail.com</a>
+<p class="copied" aria-live="polite" style="margin: 14px 0 0; min-height: 1.4em; font-family: 'Pixelta', 'Geist Mono', monospace; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: #F2EEFA; text-shadow: 0 0 12px rgba(178, 140, 220, .6)"><sc-if value="{{emailCopied}}" hint-placeholder-val="{{ false }}"><span class="copiedmsg">✓ Copied to clipboard</span></sc-if></p>
 <div class="stag" style="--d: .15s; display: flex; flex-wrap: wrap; gap: 12px; margin-top: 48px">
 <a href="https://elkryy.itch.io" class="chip" style="gap: 10px">itch.io <span class="ic ic-itch" aria-hidden="true"></span> ↗</a>
 <a href="https://www.artstation.com/kr1pt1cs" class="chip" style="gap: 10px">ArtStation <span class="ic ic-artstation" aria-hidden="true"></span> ↗</a><a href="#contact" class="chip" style="gap: 10px">CV (PDF) <span class="ic ic-cv" aria-hidden="true"></span> ↓</a>
@@ -268,7 +270,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794175633"></script>
+<script src="runtime.js?v=1794176605"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -445,6 +447,26 @@ class Component extends DCLogic {
     this.setEmailEl = (el) => { this.emailEl = el; };
     this.emailEnter = () => { this.emailHover = true; };
     this.emailLeave = () => { this.emailHover = false; };
+    this.copyEmail = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      const addr = 'kr1pt1csbuisness@gmail.com';
+      const done = () => {
+        this.sfx('hover');
+        this.setState({ emailCopied: true, copyTick: (this.state.copyTick || 0) + 1 });
+        clearTimeout(this.copyTo);
+        this.copyTo = setTimeout(() => this.setState({ emailCopied: false }), 2200);
+      };
+      const fallback = () => {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = addr; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+        } catch (err) {}
+        done();
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(addr).then(done, fallback);
+      else fallback();
+    };
     this.setNameCv = (el) => { this.nameCv = el; };
     this.setCurFx = (el) => { this.curCv = el; };
     this.setNavFx = (el) => { this.navCv = el; };
@@ -1865,6 +1887,8 @@ class Component extends DCLogic {
       setEmailCv: this.setEmailCv,
       setEmailEl: this.setEmailEl,
       emailEnter: this.emailEnter,
+      copyEmail: this.copyEmail,
+      emailCopied: !!(this.state && this.state.emailCopied),
       emailLeave: this.emailLeave,
       navGames: this.navHandlers.games,
       navArt: this.navHandlers.art,
