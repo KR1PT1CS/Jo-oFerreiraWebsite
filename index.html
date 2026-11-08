@@ -250,7 +250,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794150726"></script>
+<script src="runtime.js?v=1794154302"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -743,6 +743,7 @@ class Component extends DCLogic {
   startNameFx() {
     // The name is rebuilt from the font's own pixel grid (Dither Byte = 20/1000 em per pixel),
     // so every font pixel - including its dither holes - becomes one particle.
+    let free = null;
     let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
     let u = 3, sc = 1, M = 0;
     let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
@@ -811,7 +812,7 @@ class Component extends DCLogic {
         });
         n = pts.length / 3;
         hx = new Float32Array(n); hy = new Float32Array(n); x = new Float32Array(n); y = new Float32Array(n);
-        vx = new Float32Array(n); vy = new Float32Array(n); col = new Uint8Array(n);
+        vx = new Float32Array(n); vy = new Float32Array(n); col = new Uint8Array(n); free = new Float32Array(n);
         for (let k = 0; k < n; k++) { hx[k] = x[k] = pts[k * 3]; hy[k] = y[k] = pts[k * 3 + 1]; col[k] = pts[k * 3 + 2]; }
         ctx = cv.getContext('2d');
         img = ctx.createImageData(W, H); buf = new Uint32Array(img.data.buffer);
@@ -860,26 +861,29 @@ class Component extends DCLogic {
       } else pm = null;
       const stirring = on && (Math.abs(mvx) + Math.abs(mvy) > 20);
       if (resting && !stirring) return;
-      const f60 = dt * 60, R = u * 60, R2 = R * R;
-      const spring = (stirring ? 0.012 : 0.032) * f60, damp = Math.pow(stirring ? 0.925 : 0.88, f60);
+      const f60 = dt * 60, R = u * 30, R2 = R * R;
       let moving = false;
       for (let k = 0; k < n; k++) {
-        let ax = (hx[k] - x[k]) * spring, ay = (hy[k] - y[k]) * spring;
-        if (stirring) {
+        const h = ((k * 2654435761) % 1000) / 1000;
+        if (stirring && h < 0.4) {
           const dx = x[k] - mx, dy = y[k] - my, d2 = dx * dx + dy * dy;
           if (d2 < R2) {
-            const fall = 1 - Math.sqrt(d2) / R, f = fall * fall * 0.0065 * f60;
-            const jit = 0.55 + ((k * 2654435761) % 1000) / 1100;
-            ax += mvx * f * jit - dy * fall * 0.035 * f60;
-            ay += mvy * f * jit + dx * fall * 0.035 * f60;
+            const fall = 1 - Math.sqrt(d2) / R;
+            const f = fall * (0.012 + h * 0.016) * f60;
+            vx[k] += mvx * f * (0.6 + h) - dy * fall * 0.02 * f60;
+            vy[k] += mvy * f * (0.6 + h) + dx * fall * 0.02 * f60;
+            free[k] = Math.max(free[k], 0.5 + h * 0.9);
           }
         }
-        vx[k] = (vx[k] + ax) * damp; vy[k] = (vy[k] + ay) * damp;
+        const loose = free[k] > 0;
+        if (loose) free[k] -= dt;
+        const spring = (loose ? 0.0025 : 0.03) * f60, damp = Math.pow(loose ? 0.965 : 0.86, f60);
+        vx[k] = (vx[k] + (hx[k] - x[k]) * spring) * damp; vy[k] = (vy[k] + (hy[k] - y[k]) * spring) * damp;
         x[k] += vx[k] * f60; y[k] += vy[k] * f60;
-        if (!moving && (Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
+        if (!moving && (loose || Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
       }
       if (!moving && !stirring) {
-        for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; }
+        for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; free[k] = 0; }
         draw(); resting = true; return;
       }
       resting = false;
