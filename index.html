@@ -121,7 +121,7 @@ a:hover{color:var(--accent)}
 </nav>
 
 <div id="top" style="position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 0 clamp(20px, 4vw, 56px) 64px; display: flex; flex-direction: column; gap: 28px; pointer-events: none">
-<h1 class="name stroke" ref="{{setNameEl}}" style="margin: 0; font-family: 'Dither Byte', 'Pixelta', monospace; font-size: clamp(54px, 9.5vw, 150px); line-height: .92"><span class="bob" style="position: relative">João<br>Ferreira<canvas class="namecv" ref="{{setNameCv}}" aria-hidden="true"></canvas></span></h1>
+<h1 class="name stroke name-live" ref="{{setNameEl}}" style="margin: 0; font-family: 'Dither Byte', 'Pixelta', monospace; font-size: clamp(54px, 9.5vw, 150px); line-height: .92"><span class="bob" style="position: relative">João<br>Ferreira<canvas class="namecv" ref="{{setNameCv}}" aria-hidden="true"></canvas></span></h1>
 <div style="display: flex; flex-wrap: wrap; gap: 24px 64px; align-items: flex-end; justify-content: space-between">
 <p style="margin: 0; max-width: 780px; font-size: clamp(18px, 1.75vw, 24px); line-height: 1.55; color: #EDE7F7">Currently a 3rd year Videogame student at Universidade Lusofona. I work with a variety of art software since my main areas are 3D modelling, concept art and graphic design, such as Photoshop, Blender, Maya and Substance Painter. My main game software is Unity, and I also dabble with sound and video software such as Premiere Pro, After Effects and Reaper. I tend to lean on survival horror and first person shooter genres, and I try new art styles with each project release.</p>
 <p class="lbl" style="margin: 0">Lisbon, PT / Games and Art / 2026</p>
@@ -255,7 +255,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794157527"></script>
+<script src="runtime.js?v=1794167384"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -806,6 +806,7 @@ class Component extends DCLogic {
     // The name is rebuilt from the font's own pixel grid (Dither Byte = 20/1000 em per pixel),
     // so every font pixel - including its dither holes - becomes one particle.
     let free = null;
+    let intro = false, introT = 0, introDone = false, dl = null;
     let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
     let u = 3, sc = 1, M = 0;
     let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
@@ -904,6 +905,19 @@ class Component extends DCLogic {
         hx = new Float32Array(n); hy = new Float32Array(n); x = new Float32Array(n); y = new Float32Array(n);
         vx = new Float32Array(n); vy = new Float32Array(n); col = new Uint8Array(n); free = new Float32Array(n);
         for (let k = 0; k < n; k++) { hx[k] = x[k] = pts[k * 3]; hy[k] = y[k] = pts[k * 3 + 1]; col[k] = pts[k * 3 + 2]; }
+        if (!introDone) {
+          // first load: pixels start scattered and drift in to assemble the name, left to right
+          dl = new Float32Array(n);
+          const spanW = W - 2 * M;
+          for (let k = 0; k < n; k++) {
+            const a = Math.random() * Math.PI * 2, rad = (0.35 + Math.random() * 0.65) * Math.max(W, H) * 0.55;
+            x[k] = hx[k] + Math.cos(a) * rad + (Math.random() - 0.5) * 60;
+            y[k] = hy[k] + Math.sin(a) * rad * 0.55;
+            vx[k] = (Math.random() - 0.5) * 2; vy[k] = (Math.random() - 0.5) * 2;
+            dl[k] = Math.max(0, (hx[k] - M) / Math.max(1, spanW)) * 0.9 + Math.random() * 0.5;
+          }
+          intro = true; introT = 0; introDone = true;
+        }
         ctx = cv.getContext('2d');
         img = ctx.createImageData(W, H); buf = new Uint32Array(img.data.buffer);
         key = sr.width.toFixed(0) + 'x' + sr.height.toFixed(0) + '@' + fs;
@@ -951,12 +965,17 @@ class Component extends DCLogic {
         pm = [mx, my];
       } else pm = null;
       const stirring = on && (Math.abs(mvx) + Math.abs(mvy) > 20);
-      if (resting && !stirring) return;
+      if (resting && !stirring && !intro) return;
+      if (intro) introT += dt;
       const f60 = dt * 60, R = u * 30, R2 = R * R;
       const spring = (stirring ? 0.012 : 0.032) * f60, damp = Math.pow(stirring ? 0.925 : 0.88, f60);
+      const iSpring = 0.022 * f60, iDamp = Math.pow(0.86, f60);
       let moving = false;
       for (let k = 0; k < n; k++) {
-        let ax = (hx[k] - x[k]) * spring, ay = (hy[k] - y[k]) * spring;
+        const waiting = intro && introT < dl[k];
+        const sp2 = intro ? (waiting ? 0.0006 * f60 : iSpring) : spring;
+        let ax = (hx[k] - x[k]) * sp2, ay = (hy[k] - y[k]) * sp2;
+        if (waiting) { ax += Math.sin(introT * 3 + k) * 0.05 * f60; ay += Math.cos(introT * 2.3 + k * 1.7) * 0.05 * f60; }
         if (stirring) {
           const dx = x[k] - mx, dy = y[k] - my, d2 = dx * dx + dy * dy;
           if (d2 < R2) {
@@ -966,11 +985,13 @@ class Component extends DCLogic {
             ay += mvy * f * jit + dx * fall * 0.035 * f60;
           }
         }
-        vx[k] = (vx[k] + ax) * damp; vy[k] = (vy[k] + ay) * damp;
+        const dmp = intro ? iDamp : damp;
+        vx[k] = (vx[k] + ax) * dmp; vy[k] = (vy[k] + ay) * dmp;
         x[k] += vx[k] * f60; y[k] += vy[k] * f60;
         if (!moving && (Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
       }
       if (!moving && !stirring) {
+        intro = false;
         for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; }
         draw(); resting = true; return;
       }
