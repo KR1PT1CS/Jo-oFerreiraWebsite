@@ -80,6 +80,9 @@ a:hover{color:var(--accent)}
 @keyframes bob{from{transform:translateY(5px)}to{transform:translateY(-7px)}}
 .stroke{-webkit-text-stroke:10px #000000;paint-order:stroke fill}
 .namecv{position:absolute;left:0;top:0;pointer-events:none;image-rendering:pixelated;filter:drop-shadow(0 0 8px rgba(255,255,255,.28)) drop-shadow(0 0 26px color-mix(in srgb,var(--glowc) 45%,transparent))}
+.emailfx{position:absolute;left:0;top:0;pointer-events:none;z-index:2;image-rendering:pixelated}
+.biglink{display:inline-block;transition:color .35s,text-shadow .35s}
+.biglink:hover,.biglink:focus-visible{color:#FFFFFF;text-shadow:0 0 10px color-mix(in srgb,var(--accent) 90%,transparent),0 0 28px color-mix(in srgb,var(--accent) 70%,transparent),0 0 60px color-mix(in srgb,var(--glowc) 55%,transparent)}
 .name-live{color:transparent !important;-webkit-text-stroke:0 !important;text-shadow:none !important}
 .bobs{animation-name:bobs}
 @keyframes bobs{from{transform:translateY(2px)}to{transform:translateY(-3px)}}
@@ -234,7 +237,8 @@ a:hover{color:var(--accent)}
 <canvas class="dmask" ref="{{maskContact}}" aria-hidden="true"></canvas>
 <canvas class="artfx swirlfx" ref="{{setContactFx}}" aria-hidden="true"></canvas>
 <h2 id="t-contact" class="bob bobs" style="animation-delay: -3.6s; margin: 0 0 44px; font-family: 'Lochley', 'Dither Byte', 'Pixelta', monospace; color: #FFFFFF; font-size: clamp(56px, 8vw, 128px); font-weight: 400; line-height: 1; letter-spacing: .01em; text-transform: uppercase">Contact<span style="font-family: 'Pixelta', 'Geist Mono', monospace; font-size: clamp(16px, 1.7vw, 24px); text-transform: none; letter-spacing: .02em; color: #EDE7F7; margin-left: .7em; vertical-align: middle; white-space: nowrap">- I am always up to chat</span></h2>
-<a href="mailto:kr1pt1csbuisness@gmail.com" class="biglink stag">kr1pt1csbuisness@gmail.com</a>
+<canvas class="emailfx" ref="{{setEmailCv}}" aria-hidden="true"></canvas>
+<a href="mailto:kr1pt1csbuisness@gmail.com" class="biglink stag" ref="{{setEmailEl}}" onMouseEnter="{{emailEnter}}" onMouseLeave="{{emailLeave}}" onFocus="{{emailEnter}}" onBlur="{{emailLeave}}">kr1pt1csbuisness@gmail.com</a>
 <div class="stag" style="--d: .15s; display: flex; flex-wrap: wrap; gap: 12px; margin-top: 48px">
 <a href="https://elkryy.itch.io" class="chip" style="gap: 10px">itch.io <span class="ic ic-itch" aria-hidden="true"></span> ↗</a>
 <a href="https://www.artstation.com/kr1pt1cs" class="chip" style="gap: 10px">ArtStation <span class="ic ic-artstation" aria-hidden="true"></span> ↗</a><a href="#contact" class="chip" style="gap: 10px">CV (PDF) <span class="ic ic-cv" aria-hidden="true"></span> ↓</a>
@@ -250,7 +254,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794154452"></script>
+<script src="runtime.js?v=1794154795"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -414,6 +418,11 @@ class Component extends DCLogic {
     this.nameParts = [];
     this.setNameEl = (el) => { this.nameEl = el; };
     this.nameCv = null;
+    this.emailCv = null; this.emailEl = null; this.emailHover = false;
+    this.setEmailCv = (el) => { this.emailCv = el; };
+    this.setEmailEl = (el) => { this.emailEl = el; };
+    this.emailEnter = () => { this.emailHover = true; };
+    this.emailLeave = () => { this.emailHover = false; };
     this.setNameCv = (el) => { this.nameCv = el; };
     this.setCurFx = (el) => { this.curCv = el; };
     this.setNavFx = (el) => { this.navCv = el; };
@@ -555,6 +564,7 @@ class Component extends DCLogic {
     this.startArtFx();
     this.startCursorParts();
     this.startNameFx();
+    this.startEmailFx();
   }
 
   startArtFx() {
@@ -753,11 +763,16 @@ class Component extends DCLogic {
       building = true;
       try {
         const span = cv.parentElement;
-        const cs = getComputedStyle(h1);
-        const fs = parseFloat(cs.fontSize);
-        u = Math.max(2, Math.round(fs * 0.02));
+        // snap the name's size so one font pixel = a whole number of screen pixels (no scaling blur/aliasing)
+        if (!h1.dataset.fs) h1.dataset.fs = h1.style.fontSize;
+        h1.style.fontSize = h1.dataset.fs;
+        const fs0 = parseFloat(getComputedStyle(h1).fontSize);
+        u = Math.max(1, Math.round(fs0 * 0.02));
         const fsR = u * 50;
-        sc = fs / fsR;
+        h1.style.fontSize = fsR + 'px';
+        const cs = getComputedStyle(h1);
+        const fs = fsR;
+        sc = 1;
         M = u * 60;
         try { await document.fonts.load(fsR + 'px "Dither Byte"', 'João Ferreira'); } catch (e) {}
         const sr = span.getBoundingClientRect();
@@ -784,27 +799,38 @@ class Component extends DCLogic {
           let prefix = '';
           chars.forEach((ch) => {
             // each glyph gets its own pixel-grid phase so its dither lines up exactly
-            const cx0 = x0 + o.measureText(prefix).width;
+            const cxTrue = x0 + o.measureText(prefix).width;
             prefix += ch;
             if (!ch.trim()) return;
+            // snap the glyph so its pixel grid sits on whole canvas pixels (no anti-aliased half dots)
+            const cx0 = Math.round(cxTrue + 0.006 * fsR) - 0.006 * fsR;
             o.clearRect(0, 0, W, H);
             o.fillStyle = '#fff';
             o.fillText(ch, cx0, base);
-            const ox = cx0 + 0.006 * fsR, oy = base - 0.006 * fsR;
-            const pad = strokeCells + 1;
+            const pad = strokeCells + 2;
             const cw = o.measureText(ch).width;
-            const iMin = -pad - Math.ceil(fsR * 0.15 / u), iMax = Math.ceil((cw + fsR * 0.35) / u) + pad;
-            const jMin = -Math.ceil(asc / u) - pad, jMax = Math.ceil(desc / u) + pad;
-            const gw = iMax - iMin + 1, gh = jMax - jMin + 1;
-            const bx = Math.max(0, Math.floor(ox + iMin * u)), by = Math.max(0, Math.floor(oy + jMin * u));
-            const bw = Math.min(W - bx, gw * u + 2), bh = Math.min(H - by, gh * u + 2);
-            if (bw <= 0 || bh <= 0) return;
+            const bx = Math.max(0, Math.floor(cx0 - fsR * 0.2 - pad * u)), by = Math.max(0, Math.floor(base - asc - pad * u));
+            const bw = Math.min(W - bx, Math.ceil(cw + fsR * 0.6 + 2 * pad * u)), bh = Math.min(H - by, Math.ceil(asc + desc + 2 * pad * u));
+            if (bw <= u || bh <= u) return;
             const d = o.getImageData(bx, by, bw, bh).data;
+            // find the pixel-grid phase where cell centres land cleanly inside/outside the glyph
+            let best = Infinity, bpx = 0, bpy = 0;
+            for (let ph = 0; ph < u; ph += 0.25) for (let pv = 0; pv < u; pv += 0.25) {
+              let score = 0;
+              for (let yy = pv + u / 2; yy < bh; yy += u * 2) for (let xx = ph + u / 2; xx < bw; xx += u) {
+                const al = d[((yy | 0) * bw + (xx | 0)) * 4 + 3];
+                score += al < 128 ? al : 255 - al;
+              }
+              if (score < best) { best = score; bpx = ph; bpy = pv; }
+            }
+            const ox = bx + bpx, oy = by + bpy;
+            const gw = Math.floor((bw - bpx) / u), gh = Math.floor((bh - bpy) / u);
+            const iMin = 0, jMin = 0;
             const white = new Uint8Array(gw * gh);
-            for (let j = jMin; j <= jMax; j++) for (let i = iMin; i <= iMax; i++) {
-              const cx = Math.floor(ox + (i + 0.5) * u) - bx, cy = Math.floor(oy + (j + 0.5) * u) - by;
-              if (cx < 0 || cy < 0 || cx >= bw || cy >= bh) continue;
-              if (d[(cy * bw + cx) * 4 + 3] > 127) white[(j - jMin) * gw + (i - iMin)] = 1;
+            for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+              const cx = Math.floor(bpx + (i + 0.5) * u), cy = Math.floor(bpy + (j + 0.5) * u);
+              const al = d[(cy * bw + cx) * 4 + 3];
+              if (al > 127) white[j * gw + i] = 1;
             }
             for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
               const k = j * gw + i;
@@ -848,6 +874,7 @@ class Component extends DCLogic {
       }
       ctx.putImageData(img, 0, 0);
     };
+    window.addEventListener('resize', () => { key = ''; });
     const frame = (now) => {
       if (this.dead) return;
       requestAnimationFrame(frame);
@@ -897,6 +924,60 @@ class Component extends DCLogic {
       }
       resting = false;
       draw();
+    };
+    requestAnimationFrame(frame);
+  }
+
+  startEmailFx() {
+    const parts = [];
+    let last = performance.now(), drawn = false, glow = 0;
+    const mixHex = (x, y, t) => { const a = this.hex(x), b = this.hex(y); return 'rgb(' + a.map((v, i) => Math.round((v + (b[i] - v) * t) * 255)).join(',') + ')'; };
+    const frame = (now) => {
+      if (this.dead) return;
+      requestAnimationFrame(frame);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const cv = this.emailCv, el = this.emailEl;
+      if (!cv || !el || !cv.getContext) return;
+      glow += ((this.emailHover ? 1 : 0) - glow) * Math.min(1, dt * 6);
+      if (!this.emailHover && !parts.length) { if (drawn) { cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); drawn = false; } return; }
+      const P = this.props;
+      const cell = Math.max(3, Number(P.tamanhoPixel ?? 3));
+      const pad = 140;
+      const host = cv.offsetParent || cv.parentElement;
+      const hr = host.getBoundingClientRect(), er = el.getBoundingClientRect();
+      const W = Math.ceil(er.width + pad * 2), H = Math.ceil(er.height + pad * 2);
+      const L = Math.round(er.left - hr.left - pad), T = Math.round(er.top - hr.top - pad);
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
+      cv.style.left = L + 'px'; cv.style.top = T + 'px';
+      const ctx = cv.getContext('2d');
+      ctx.clearRect(0, 0, W, H);
+      drawn = true;
+      const dith = P.corDither ?? '#4B3161', lite = P.corCursor ?? '#A57FD0', acc = P.corDestaque ?? '#B48CFF';
+      const pal = [mixHex('#000000', dith, 0.7), dith, mixHex(dith, lite, 0.5), lite, acc, mixHex(acc, '#FFFFFF', 0.6), '#FFFFFF'];
+      if (this.emailHover && parts.length < 360) {
+        const nNew = Math.floor(70 * dt * (er.width / 600) + Math.random());
+        for (let k = 0; k < nNew; k++) {
+          const edge = Math.random();
+          const sx = pad + Math.random() * er.width, sy = pad + er.height * (0.15 + Math.random() * 0.7);
+          const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4 + (edge < 0.25 ? Math.PI : 0);
+          const sp = 18 + Math.random() * 60;
+          parts.push({ x: sx, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: 0.8 + Math.random() * 1.4, ci: 3 + Math.floor(Math.random() * 4), big: Math.random() < 0.2 });
+        }
+      }
+      const paths = pal.map(() => new Path2D());
+      for (let k = parts.length - 1; k >= 0; k--) {
+        const q = parts[k];
+        q.life += dt;
+        q.vx *= 0.985; q.vy = q.vy * 0.985 - 6 * dt;
+        q.x += q.vx * dt; q.y += q.vy * dt;
+        const lr = q.life / q.max;
+        if (lr >= 1 || q.x < 0 || q.y < 0 || q.x > W || q.y > H) { parts.splice(k, 1); continue; }
+        if (lr > 0.65 && ((Math.floor(q.life * 18) + k) % 2)) continue;
+        const ci = Math.max(0, q.ci - Math.floor(lr * 4));
+        const sz = q.big && lr < 0.4 ? cell * 2 : cell;
+        paths[ci].rect(Math.floor(q.x / cell) * cell, Math.floor(q.y / cell) * cell, sz, sz);
+      }
+      paths.forEach((pp, i) => { ctx.fillStyle = pal[i]; ctx.fill(pp); });
     };
     requestAnimationFrame(frame);
   }
@@ -1388,6 +1469,10 @@ class Component extends DCLogic {
       setCurFx: this.setCurFx,
       setNameEl: this.setNameEl,
       setNameCv: this.setNameCv,
+      setEmailCv: this.setEmailCv,
+      setEmailEl: this.setEmailEl,
+      emailEnter: this.emailEnter,
+      emailLeave: this.emailLeave,
       navGames: this.navHandlers.games,
       navArt: this.navHandlers.art,
       navAbout: this.navHandlers.about,
