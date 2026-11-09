@@ -84,7 +84,7 @@ a:hover{color:var(--accent)}
 .bob{display:inline-block;animation:bob 3.6s steps(5,end) infinite alternate;will-change:transform}
 @keyframes bob{from{transform:translateY(5px)}to{transform:translateY(-7px)}}
 .stroke{-webkit-text-stroke:10px #000000;paint-order:stroke fill}
-.namecv{position:absolute;left:0;top:0;pointer-events:none;image-rendering:pixelated;filter:drop-shadow(0 0 8px rgba(255,255,255,.28)) drop-shadow(0 0 26px color-mix(in srgb,var(--glowc) 45%,transparent))}
+.namecv{position:absolute;left:0;top:0;pointer-events:none;image-rendering:pixelated}.nameglow{position:absolute;pointer-events:none;opacity:0;transition:opacity 1.2s ease}.nameglow.on{opacity:1}
 .vidfx{position:absolute;left:0;top:0;pointer-events:none;z-index:2;image-rendering:pixelated}
 .ph.vidglow{border:1px solid color-mix(in srgb,var(--accent) 85%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent),0 0 16px color-mix(in srgb,var(--accent) 55%,transparent),0 0 48px color-mix(in srgb,var(--glowc) 40%,transparent);animation:vidpulse 3.2s ease-in-out infinite}
 @keyframes vidpulse{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent),0 0 14px color-mix(in srgb,var(--accent) 45%,transparent),0 0 40px color-mix(in srgb,var(--glowc) 30%,transparent)}50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent),0 0 22px color-mix(in srgb,var(--accent) 70%,transparent),0 0 64px color-mix(in srgb,var(--glowc) 50%,transparent)}}
@@ -109,10 +109,10 @@ a:hover{color:var(--accent)}
 <canvas class="navfx" ref="{{setNavFx}}" aria-hidden="true"></canvas>
 <audio ref="{{setAudio}}" preload="auto"></audio>
 <div class="soundbar" ref="{{setSoundbar}}" style="position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none">
-<sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><div class="mctls" style="display: flex; gap: 8px"><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)" onClick="{{prevTrack}}" aria-label="Previous track" title="Previous track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="4" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect><rect x="6" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect></svg></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)" onClick="{{togglePause}}" aria-label="{{pauseLabel}}" title="{{pauseLabel}}"><sc-if value="{{trackPlaying}}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="2" height="6"></rect><rect x="5" y="1" width="2" height="6"></rect></svg></sc-if><sc-if value="{{trackPaused}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="2" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="6" y="3" width="1" height="2"></rect></svg></sc-if></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)" onClick="{{nextTrack}}" aria-label="Next track" title="Next track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="1" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect></svg></button></div></sc-if>
+<sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><div class="mctls" style="display: flex; gap: 8px"><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 88%, transparent)" onClick="{{prevTrack}}" aria-label="Previous track" title="Previous track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="4" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect><rect x="6" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect></svg></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 88%, transparent)" onClick="{{togglePause}}" aria-label="{{pauseLabel}}" title="{{pauseLabel}}"><sc-if value="{{trackPlaying}}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="2" height="6"></rect><rect x="5" y="1" width="2" height="6"></rect></svg></sc-if><sc-if value="{{trackPaused}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="2" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="6" y="3" width="1" height="2"></rect></svg></sc-if></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 88%, transparent)" onClick="{{nextTrack}}" aria-label="Next track" title="Next track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="1" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect></svg></button></div></sc-if>
 <div style="display: flex; align-items: center; gap: 14px">
 <sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><p class="nowplaying" aria-live="polite" style="margin: 0; font-family: 'Pixelta', 'Geist Mono', monospace; font-size: 14px; letter-spacing: .06em; text-transform: uppercase; color: #F2EEFA; text-shadow: 0 0 12px rgba(178, 140, 220, .55), 0 1px 2px #000"><span style="opacity: .6">{{npLabel}}</span> — {{trackName}} <span style="opacity: .6">by</span> Passing Currents</p></sc-if>
-<button class="chip sound" onClick="{{toggleMusic}}" aria-pressed="{{musicPressed}}" aria-label="Background music" style="pointer-events: auto; gap: 10px; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px)">
+<button class="chip sound" onClick="{{toggleMusic}}" aria-pressed="{{musicPressed}}" aria-label="Background music" style="pointer-events: auto; gap: 10px; background: color-mix(in srgb, var(--bg) 88%, transparent)">
 <sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true" style="flex: none"><rect x="0" y="3" width="2" height="2"></rect><rect x="2" y="2" width="1" height="4"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="5" y="2" width="1" height="1"></rect><rect x="5" y="5" width="1" height="1"></rect><rect x="6" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="1"></rect><rect x="7" y="6" width="1" height="1"></rect></svg></sc-if>
 <sc-if value="{{musicOff}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true" style="flex: none"><rect x="0" y="3" width="2" height="2"></rect><rect x="2" y="2" width="1" height="4"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="5" y="2" width="1" height="1"></rect><rect x="7" y="2" width="1" height="1"></rect><rect x="6" y="3" width="1" height="2"></rect><rect x="5" y="5" width="1" height="1"></rect><rect x="7" y="5" width="1" height="1"></rect></svg></sc-if>
 <span>{{musicLabel}}</span>
@@ -125,7 +125,7 @@ a:hover{color:var(--accent)}
 <canvas ref="{{setCurFx}}" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; pointer-events: none; image-rendering: pixelated"></canvas>
 
 <nav aria-label="Main" style="position: absolute; top: 24px; left: 0; right: 0; z-index: 2; padding: 0 clamp(20px, 4vw, 56px); display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; align-items: center">
-<div style="display: flex; flex-wrap: wrap; gap: 2px; padding: 0 6px; border-radius: 0; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px)">
+<div style="display: flex; flex-wrap: wrap; gap: 2px; padding: 0 6px; border-radius: 0; background: color-mix(in srgb, var(--bg) 86%, transparent)">
 <a href="#games" class="navlink" onClick="{{navGames}}">Games</a>
 <a href="#art" class="navlink" onClick="{{navArt}}">Art</a>
 <a href="#about" class="navlink" onClick="{{navAbout}}">About</a>
@@ -275,7 +275,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794178206"></script>
+<script src="runtime.js?v=1794260223"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -951,6 +951,7 @@ class Component extends DCLogic {
     let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
     let u = 3, sc = 1, M = 0, MX = 0;
     let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
+    let pbox = null, glowCv = null;
     const build = async () => {
       const cv = this.nameCv, h1 = this.nameEl;
       if (!cv || !h1) return;
@@ -1175,14 +1176,61 @@ class Component extends DCLogic {
         }
         ctx = cv.getContext('2d');
         img = ctx.createImageData(W, H); buf = new Uint32Array(img.data.buffer);
+        pbox = null;
+        // static glow: blurred once from the resting silhouette, instead of a live CSS drop-shadow
+        // that the browser had to re-blur on every animation frame
+        try {
+          const pad = 48;
+          if (!glowCv || !glowCv.isConnected) { glowCv = document.createElement('canvas'); glowCv.className = 'nameglow'; glowCv.setAttribute('aria-hidden', 'true'); span.insertBefore(glowCv, cv); }
+          glowCv.width = W + pad * 2; glowCv.height = H + pad * 2;
+          glowCv.style.left = (-MX * sc - pad) + 'px'; glowCv.style.top = (-M * sc - pad) + 'px';
+          glowCv.style.width = glowCv.width + 'px'; glowCv.style.height = glowCv.height + 'px';
+          const sil = document.createElement('canvas'); sil.width = W; sil.height = H;
+          const sx = sil.getContext('2d'); sx.fillStyle = '#FFFFFF';
+          for (let k = 0; k < n; k++) sx.fillRect(Math.round(hx[k]), Math.round(hy[k]), u, u);
+          const tint = (c) => { const t = document.createElement('canvas'); t.width = W; t.height = H; const tx = t.getContext('2d'); tx.drawImage(sil, 0, 0); tx.globalCompositeOperation = 'source-in'; tx.fillStyle = '#9B6BFF'; tx.fillStyle = c; tx.fillRect(0, 0, W, H); return t; };
+          const gc = (getComputedStyle(h1).getPropertyValue('--glowc') || '').trim() || '#9B6BFF';
+          const g = glowCv.getContext('2d');
+          g.clearRect(0, 0, glowCv.width, glowCv.height);
+          if ('filter' in g) {
+            const tg = tint(gc), tw = tint('#FFFFFF');
+            g.filter = 'blur(14px)'; g.globalAlpha = 0.6; g.drawImage(tg, pad, pad); g.drawImage(tg, pad, pad);
+            g.filter = 'blur(5px)'; g.globalAlpha = 0.45; g.drawImage(tw, pad, pad);
+            g.filter = 'blur(16px)'; g.globalAlpha = 0.18; g.drawImage(tw, pad, pad);
+            g.filter = 'none'; g.globalAlpha = 1; glowCv.style.filter = '';
+          } else {
+            g.drawImage(sil, pad, pad); glowCv.style.opacity = '';
+            glowCv.style.filter = 'blur(6px) opacity(.35)';
+          }
+          if (introDone) glowCv.classList.add('on'); else glowCv.classList.remove('on');
+        } catch (err) {}
+        if (introDone) draw(true);
         key = sr.width.toFixed(0) + 'x' + sr.height.toFixed(0) + '@' + fs;
         resting = false;
         h1.classList.add('name-live');
       } finally { building = false; }
     };
     const WHITE = 0xFFFFFFFF, BLACK = 0xFF000000;
-    const draw = () => {
-      buf.fill(0);
+    const draw = (full) => {
+      // only repaint the area where pixels are (or just were) out of place
+      let x0 = 0, y0 = 0, x1 = W, y1 = H;
+      if (!full) {
+        let a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9;
+        for (let k = 0; k < n; k++) {
+          const ox = x[k] - hx[k], oy = y[k] - hy[k];
+          if (ox > -u * 0.5 && ox < u * 0.5 && oy > -u * 0.5 && oy < u * 0.5) continue;
+          const lx = Math.min(x[k], hx[k]), hx2 = Math.max(x[k], hx[k]), ly = Math.min(y[k], hy[k]), hy2 = Math.max(y[k], hy[k]);
+          if (lx < a0) a0 = lx; if (hx2 > a1) a1 = hx2; if (ly < b0) b0 = ly; if (hy2 > b1) b1 = hy2;
+        }
+        const cur = a1 >= a0 ? [a0 - 2 * u, b0 - 2 * u, a1 + 3 * u, b1 + 3 * u] : null;
+        const box = cur && pbox ? [Math.min(cur[0], pbox[0]), Math.min(cur[1], pbox[1]), Math.max(cur[2], pbox[2]), Math.max(cur[3], pbox[3])] : (cur || pbox);
+        pbox = cur;
+        if (!box) return;
+        x0 = Math.max(0, Math.floor(box[0])); y0 = Math.max(0, Math.floor(box[1]));
+        x1 = Math.min(W, Math.ceil(box[2])); y1 = Math.min(H, Math.ceil(box[3]));
+        if (x1 <= x0 || y1 <= y0) return;
+      } else pbox = null;
+      for (let r = y0; r < y1; r++) buf.fill(0, r * W + x0, r * W + x1);
       // black outline first, white on top - same as the font's stroke-under-fill
       for (let pass = 0; pass < 2; pass++) {
         const c = pass ? WHITE : BLACK;
@@ -1190,10 +1238,12 @@ class Component extends DCLogic {
           if (col[k] !== pass) continue;
           const px = Math.round(hx[k] + Math.round((x[k] - hx[k]) / u) * u), py = Math.round(hy[k] + Math.round((y[k] - hy[k]) / u) * u);
           if (px < 0 || py < 0 || px > W - u || py > H - u) continue;
-          for (let r = 0; r < u; r++) { const i = (py + r) * W + px; for (let q = 0; q < u; q++) buf[i + q] = c; }
+          if (px + u <= x0 || px >= x1 || py + u <= y0 || py >= y1) continue;
+          const qa = Math.max(px, x0), qb = Math.min(px + u, x1), ra = Math.max(py, y0), rb = Math.min(py + u, y1);
+          for (let r = ra; r < rb; r++) { const i = r * W; for (let q = qa; q < qb; q++) buf[i + q] = c; }
         }
       }
-      ctx.putImageData(img, 0, 0);
+      ctx.putImageData(img, 0, 0, x0, y0, x1 - x0, y1 - y0);
     };
     window.addEventListener('resize', () => { key = ''; });
     const frame = (now) => {
@@ -1219,7 +1269,9 @@ class Component extends DCLogic {
         if (sp > 4000) { mvx *= 4000 / sp; mvy *= 4000 / sp; }
         pm = [mx, my];
       } else pm = null;
-      const stirring = on && (Math.abs(mvx) + Math.abs(mvy) > 20);
+      const R0 = u * 30;
+      const near = mx > MX - R0 && mx < W - MX + R0 && my > M - R0 && my < H - M + R0;
+      const stirring = on && near && (Math.abs(mvx) + Math.abs(mvy) > 20);
       if (resting && !stirring && !intro) return;
       if (intro) introT += dt;
       const f60 = dt * 60, R = u * 30, R2 = R * R;
@@ -1235,8 +1287,8 @@ class Component extends DCLogic {
           if (t <= 0) { x[k] += Math.sin(introT * 3 + k) * u * 0.6; y[k] += Math.cos(introT * 2.3 + k * 1.7) * u * 0.6; }
           vx[k] = vy[k] = 0;
         }
-        if (introT >= introEnd) { intro = false; introDone = true; for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; } draw(); resting = true; return; }
-        resting = false; draw(); return;
+        if (introT >= introEnd) { intro = false; introDone = true; for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; } draw(true); if (glowCv) glowCv.classList.add('on'); resting = true; return; }
+        resting = false; draw(true); return;
       }
       for (let k = 0; k < n; k++) {
         const waiting = intro && introT < dl[k];
@@ -1258,7 +1310,7 @@ class Component extends DCLogic {
         if (!moving && (Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
       }
       if (!moving && !stirring) {
-        if (intro) introDone = true;
+        if (intro) { introDone = true; if (glowCv) glowCv.classList.add('on'); }
         intro = false;
         for (let k = 0; k < n; k++) { x[k] = hx[k]; y[k] = hy[k]; vx[k] = vy[k] = 0; }
         draw(); resting = true; return;
@@ -1829,10 +1881,15 @@ class Component extends DCLogic {
       if (!this.visible) return;
       const c = this.cfg();
       if (!reduce) this.t += dt * c.speed;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = Math.max(1, Math.floor(cv.clientWidth * dpr));
-      const h = Math.max(1, Math.floor(cv.clientHeight * dpr));
-      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+      // one fragment per dither cell: the shader only ever varies per cell, so rendering at
+      // device resolution was doing the same maths 9-36x per cell. The browser upscales it (pixelated).
+      const cpx = Math.max(1, c.px);
+      const pw = cv.parentElement ? cv.parentElement.clientWidth : cv.clientWidth;
+      const ph = cv.parentElement ? cv.parentElement.clientHeight : cv.clientHeight;
+      const w = Math.max(1, Math.ceil(pw / cpx));
+      const h = Math.max(1, Math.ceil(ph / cpx));
+      if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; cv.style.width = (w * cpx) + 'px'; cv.style.height = (h * cpx) + 'px'; }
+      const dpr = 1 / cpx;
       gl.viewport(0, 0, w, h);
       if (this.mouse[0] > -9000) {
         this.sm[0] = this.mouse[0];
@@ -1842,7 +1899,7 @@ class Component extends DCLogic {
       gl.uniform1f(U.uTime, this.t);
       gl.uniform3fv(U.uA, c.a);
       gl.uniform3fv(U.uB, c.b);
-      gl.uniform1f(U.uPx, Math.max(1, c.px * dpr));
+      gl.uniform1f(U.uPx, 1);
       gl.uniform1f(U.uScale, c.scale);
       gl.uniform1f(U.uContrast, c.contrast);
       gl.uniform1f(U.uBias, c.bias);
