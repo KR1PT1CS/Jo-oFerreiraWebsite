@@ -275,7 +275,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794260223"></script>
+<script src="runtime.js?v=1794477709"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -313,11 +313,99 @@ class Component extends DCLogic {
     this.ensureAudioCtx = () => {
       try {
         if (!this.actx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.actx = new AC(); }
-        if (this.actx && this.actx.state === 'suspended') this.actx.resume();
+        if (this.actx && this.actx.state === 'suspended') {
+          const pr = this.actx.resume();
+          if (pr && pr.then) pr.then(() => this.tryIntroSfx && this.tryIntroSfx());
+        } else if (this.actx && this.actx.state === 'running' && this.tryIntroSfx) this.tryIntroSfx();
       } catch (err) {}
       return this.actx;
     };
     this.lastSfx = 0;
+    this.introPlan = null;
+    this.tryIntroSfx = () => {
+      const pl = this.introPlan;
+      if (!pl || pl.played || !this.state.music) return;
+      const ctx = this.actx;
+      if (!ctx || ctx.state !== 'running') return;
+      const off = (performance.now() - pl.at) / 1000;
+      if (off > pl.end - 0.4) return;
+      pl.played = true;
+      this.playIntroSfx(pl, Math.max(0, off));
+    };
+    this.playIntroSfx = (pl, off) => {
+      const ctx = this.actx;
+      const lvl = Math.max(0, Math.min(1, Number(this.props.volumeSfx ?? 0.5)));
+      if (!lvl) return;
+      const t0 = ctx.currentTime + 0.03 - off;
+      const out = ctx.createGain(); out.gain.value = lvl;
+      const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 6000; tone.Q.value = 0.4;
+      const dly = ctx.createDelay(1); dly.delayTime.value = 0.19;
+      const fb = ctx.createGain(); fb.gain.value = 0.3;
+      const wet = ctx.createGain(); wet.gain.value = 0.3;
+      out.connect(tone); tone.connect(ctx.destination);
+      tone.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(ctx.destination);
+      const now = ctx.currentTime;
+      const at = (tt) => Math.max(now + 0.01, t0 + tt);
+      // 1) the swarm: filtered noise whose loudness and brightness ride the pixels' speed curve
+      {
+        const dur = pl.end + 0.2;
+        const bf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+        const d = bf.getChannelData(0); let hold = 0;
+        for (let i = 0; i < d.length; i++) { if (i % 3 === 0) hold = Math.random() * 2 - 1; d[i] = hold; }
+        const src = ctx.createBufferSource(); src.buffer = bf;
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.9;
+        const g = ctx.createGain(); g.gain.value = 0.0001;
+        src.connect(f); f.connect(g); g.connect(out);
+        const step = pl.end / (pl.env.length - 1);
+        pl.env.forEach((v, i) => {
+          const tt = i * step; if (t0 + tt < now) return;
+          g.gain.linearRampToValueAtTime(0.0001 + v * 0.03, t0 + tt);
+          f.frequency.linearRampToValueAtTime(500 + v * 2600, t0 + tt);
+        });
+        g.gain.linearRampToValueAtTime(0.0001, t0 + pl.end + 0.15);
+        src.start(at(0), Math.max(0, off)); src.stop(t0 + dur);
+      }
+      // 2) pixels clicking into place: tiny soft blips, pitch rising left to right along the name
+      const scale = [261.63, 293.66, 329.63, 392, 440, 523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+      pl.ticks.forEach((tk) => {
+        if (t0 + tk.t < now) return;
+        const st = t0 + tk.t;
+        const idx = Math.max(0, Math.min(scale.length - 1, Math.round(tk.x * 7 + Math.random() * 3)));
+        const fr = scale[idx] * (tk.w ? 2 : 1);
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = Math.random() < 0.3 ? 'square' : 'triangle';
+        o.frequency.setValueAtTime(fr, st);
+        g.gain.setValueAtTime(0.0001, st);
+        g.gain.exponentialRampToValueAtTime(o.type === 'square' ? 0.004 : 0.012, st + 0.004);
+        g.gain.exponentialRampToValueAtTime(0.0001, st + 0.05 + Math.random() * 0.04);
+        o.connect(g); g.connect(out); o.start(st); o.stop(st + 0.12);
+      });
+      // 3) the name locks in: soft low chord blooming, a gentle sub thump and a short chip sparkle
+      {
+        const st = t0 + pl.end - 0.05;
+        if (st > now) {
+          [[130.81, 0.03], [196, 0.022], [261.63, 0.016], [392, 0.009]].forEach(([fr, gn]) => {
+            [-6, 6].forEach((c) => {
+              const o = ctx.createOscillator(), g = ctx.createGain();
+              o.type = 'sine'; o.detune.value = c; o.frequency.setValueAtTime(fr, st);
+              g.gain.setValueAtTime(0.0001, st);
+              g.gain.exponentialRampToValueAtTime(gn, st + 0.06);
+              g.gain.exponentialRampToValueAtTime(0.0001, st + 2.2);
+              o.connect(g); g.connect(out); o.start(st); o.stop(st + 2.3);
+            });
+          });
+          const sub = ctx.createOscillator(), sg = ctx.createGain();
+          sub.type = 'sine'; sub.frequency.setValueAtTime(110, st); sub.frequency.exponentialRampToValueAtTime(48, st + 0.25);
+          sg.gain.setValueAtTime(0.0001, st); sg.gain.exponentialRampToValueAtTime(0.09, st + 0.01); sg.gain.exponentialRampToValueAtTime(0.0001, st + 0.4);
+          sub.connect(sg); sg.connect(out); sub.start(st); sub.stop(st + 0.45);
+          const ch = ctx.createOscillator(), cg = ctx.createGain(), cf = ctx.createBiquadFilter();
+          ch.type = 'square'; cf.type = 'lowpass'; cf.frequency.value = 3000;
+          [523.25, 659.25, 783.99, 1046.5].forEach((fr, i) => ch.frequency.setValueAtTime(fr, st + 0.05 + i * 0.045));
+          cg.gain.setValueAtTime(0.0001, st + 0.05); cg.gain.exponentialRampToValueAtTime(0.006, st + 0.06); cg.gain.exponentialRampToValueAtTime(0.0001, st + 0.45);
+          ch.connect(cf); cf.connect(cg); cg.connect(out); ch.start(st + 0.05); ch.stop(st + 0.5);
+        }
+      }
+    };
     this.sfx = (kind) => {
       if (!this.state.music) return;
       const ctx = this.actx;
@@ -503,7 +591,18 @@ class Component extends DCLogic {
     this.curCv = null;
     this.nameEl = null;
     this.nameParts = [];
-    this.setNameEl = (el) => { this.nameEl = el; };
+    this.setNameEl = (el) => {
+      this.nameEl = el;
+      if (el && !this._dblWired) {
+        this._dblWired = true;
+        // the name sits under the background canvases, so test the double-click position against it
+        window.addEventListener('dblclick', (e) => {
+          const h = this.nameEl; if (!h || !this.replayIntro) return;
+          const r = h.getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) this.replayIntro();
+        });
+      }
+    };
     this.nameCv = null;
     this.emailCv = null; this.emailEl = null; this.emailHover = false;
     this.setEmailCv = (el) => { this.emailCv = el; };
@@ -952,6 +1051,7 @@ class Component extends DCLogic {
     let u = 3, sc = 1, M = 0, MX = 0;
     let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
     let pbox = null, glowCv = null;
+    this.replayIntro = () => { if (building || intro) return; introDone = false; key = ''; if (glowCv) glowCv.classList.remove('on'); this.ensureAudioCtx(); };
     const build = async () => {
       const cv = this.nameCv, h1 = this.nameEl;
       if (!cv || !h1) return;
@@ -1173,6 +1273,26 @@ class Component extends DCLogic {
             introEnd = Math.max(introEnd, dl[k] + I_DUR);
           }
           intro = true; introT = 0;
+          // sound plan for the assembly, built from the same timings the pixels use
+          {
+            const env = [], ENV_N = 48;
+            const dIE = (t) => { const e = 0.001; return (iEase(Math.min(1, t + e)) - iEase(Math.max(0, t - e))) / (Math.min(1, t + e) - Math.max(0, t - e)); };
+            const sampleK = []; for (let i = 0; i < 400; i++) sampleK.push(Math.floor(Math.random() * n));
+            let vmax = 1e-6;
+            for (let i = 0; i < ENV_N; i++) {
+              const tt = (i / (ENV_N - 1)) * introEnd; let v = 0;
+              sampleK.forEach((k) => { const q = (tt - dl[k]) / I_DUR; if (q > 0 && q < 1) v += dIE(q); });
+              env.push(v); if (v > vmax) vmax = v;
+            }
+            const ticks = [];
+            for (let i = 0; i < 110; i++) {
+              const k = Math.floor(Math.random() * n);
+              ticks.push({ t: dl[k] + I_DUR * (0.62 + Math.random() * 0.3), x: (hx[k] - MX) / Math.max(1, W - 2 * MX), w: col[k] });
+            }
+            ticks.sort((a, b) => a.t - b.t);
+            this.introPlan = { at: performance.now(), end: introEnd, env: env.map((v) => v / vmax), ticks, played: false };
+            this.tryIntroSfx();
+          }
         }
         ctx = cv.getContext('2d');
         img = ctx.createImageData(W, H); buf = new Uint32Array(img.data.buffer);
