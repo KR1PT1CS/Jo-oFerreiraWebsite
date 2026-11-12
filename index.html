@@ -275,7 +275,7 @@ a:hover{color:var(--accent)}
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794477709"></script>
+<script src="runtime.js?v=1794477972"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -322,6 +322,50 @@ class Component extends DCLogic {
     };
     this.lastSfx = 0;
     this.introPlan = null;
+    // keyboard-like click (in the spirit of Opera GX's typing sounds): a crisp noise tap + a small wooden body
+    this.keyBus = null; this.keyNoise = null; this.lastKey = 0;
+    this.keyTick = (amt, soft) => {
+      if (!this.state.music) return;
+      const ctx = this.actx;
+      if (!ctx || ctx.state !== 'running') return;
+      const nowMs = performance.now();
+      if (nowMs - this.lastKey < 28) return;
+      this.lastKey = nowMs;
+      const lvl = Math.max(0, Math.min(1, Number(this.props.volumeSfx ?? 0.5)));
+      if (!lvl) return;
+      if (!this.keyBus || this.keyBus.context !== ctx) {
+        const g = ctx.createGain(); g.gain.value = 1;
+        const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90;
+        g.connect(hp); hp.connect(ctx.destination);
+        this.keyBus = g;
+        const bf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.05), ctx.sampleRate);
+        const d = bf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+        this.keyNoise = bf;
+      }
+      this.keyBus.gain.value = lvl;
+      const t = ctx.currentTime + 0.005;
+      const a = (soft ? 0.55 : 1) * (0.7 + Math.random() * 0.3) * amt;
+      const var1 = 0.85 + Math.random() * 0.3;
+      // the tap: short bright noise burst
+      const n = ctx.createBufferSource(); n.buffer = this.keyNoise; n.playbackRate.value = 0.8 + Math.random() * 0.5;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = (soft ? 2600 : 3400) * var1; bp.Q.value = 1.6;
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.09 * a, t + 0.0015); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      n.connect(bp); bp.connect(ng); ng.connect(this.keyBus); n.start(t); n.stop(t + 0.05);
+      // the body: tiny pitched thock under the tap
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = 'triangle';
+      const f0 = (soft ? 260 : 320) * var1;
+      o.frequency.setValueAtTime(f0 * 1.6, t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.012);
+      og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.05 * a, t + 0.002); og.gain.exponentialRampToValueAtTime(0.0001, t + (soft ? 0.05 : 0.04));
+      o.connect(og); og.connect(this.keyBus); o.start(t); o.stop(t + 0.07);
+      // a faint high click on top for the plastic edge
+      const c = ctx.createOscillator(), cg = ctx.createGain();
+      c.type = 'square'; c.frequency.value = (soft ? 1800 : 2400) * var1;
+      cg.gain.setValueAtTime(0.0001, t); cg.gain.exponentialRampToValueAtTime(0.006 * a, t + 0.001); cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.008);
+      c.connect(cg); cg.connect(this.keyBus); c.start(t); c.stop(t + 0.02);
+    };
     this.tryIntroSfx = () => {
       const pl = this.introPlan;
       if (!pl || pl.played || !this.state.music) return;
@@ -1050,7 +1094,7 @@ class Component extends DCLogic {
     let n = 0, hx, hy, x, y, vx, vy, col, W = 0, H = 0, buf = null, img = null, ctx = null;
     let u = 3, sc = 1, M = 0, MX = 0;
     let key = '', building = false, resting = false, lastCheck = 0, last = performance.now(), pm = null;
-    let pbox = null, glowCv = null;
+    let pbox = null, glowCv = null, offF = null, tickT = 0;
     this.replayIntro = () => { if (building || intro) return; introDone = false; key = ''; if (glowCv) glowCv.classList.remove('on'); this.ensureAudioCtx(); };
     const build = async () => {
       const cv = this.nameCv, h1 = this.nameEl;
@@ -1296,7 +1340,7 @@ class Component extends DCLogic {
         }
         ctx = cv.getContext('2d');
         img = ctx.createImageData(W, H); buf = new Uint32Array(img.data.buffer);
-        pbox = null;
+        pbox = null; offF = new Uint8Array(n);
         // static glow: blurred once from the resting silhouette, instead of a live CSS drop-shadow
         // that the browser had to re-blur on every animation frame
         try {
@@ -1397,7 +1441,7 @@ class Component extends DCLogic {
       const f60 = dt * 60, R = u * 30, R2 = R * R;
       const spring = (stirring ? 0.012 : 0.032) * f60, damp = Math.pow(stirring ? 0.925 : 0.88, f60);
       const iSpring = 0.022 * f60, iDamp = Math.pow(0.86, f60);
-      let moving = false;
+      let moving = false, hits = 0, snaps = 0;
       if (intro) {
         for (let k = 0; k < n; k++) {
           const t = Math.min(1, Math.max(0, (introT - dl[k]) / I_DUR));
@@ -1418,6 +1462,7 @@ class Component extends DCLogic {
         if (stirring) {
           const dx = x[k] - mx, dy = y[k] - my, d2 = dx * dx + dy * dy;
           if (d2 < R2) {
+            hits++;
             const fall = 1 - Math.sqrt(d2) / R, f = fall * fall * 0.0065 * f60;
             const jit = 0.55 + ((k * 2654435761) % 1000) / 1100;
             ax += mvx * f * jit - dy * fall * 0.035 * f60;
@@ -1428,6 +1473,23 @@ class Component extends DCLogic {
         vx[k] = (vx[k] + ax) * dmp; vy[k] = (vy[k] + ay) * dmp;
         x[k] += vx[k] * f60; y[k] += vy[k] * f60;
         if (!moving && (Math.abs(x[k] - hx[k]) > u * 0.5 || Math.abs(y[k] - hy[k]) > u * 0.5 || Math.abs(vx[k]) > 0.08 || Math.abs(vy[k]) > 0.08)) moving = true;
+        if (offF && !intro) {
+          const ox = Math.abs(x[k] - hx[k]), oy = Math.abs(y[k] - hy[k]);
+          if (!offF[k]) { if (ox > u * 2.5 || oy > u * 2.5) offF[k] = 1; }
+          else if (ox < u * 0.6 && oy < u * 0.6) { offF[k] = 0; snaps++; }
+        }
+      }
+      // typing-style clicks: fast while dragging pixels, softer ones as they snap back home
+      if (!intro) {
+        tickT += dt;
+        if (stirring && hits > 0) {
+          const sp = Math.min(1, Math.hypot(mvx, mvy) / 2200), amt = Math.min(1, hits / 120);
+          const gap = 0.13 - 0.085 * Math.max(sp, amt);
+          if (tickT > gap * (0.75 + Math.random() * 0.5)) { tickT = 0; this.keyTick(0.55 + 0.45 * amt, false); }
+        } else if (snaps > 0) {
+          const gap = Math.max(0.045, 0.11 - snaps * 0.004);
+          if (tickT > gap * (0.8 + Math.random() * 0.5)) { tickT = 0; this.keyTick(Math.min(0.75, 0.3 + snaps * 0.02), true); }
+        }
       }
       if (!moving && !stirring) {
         if (intro) { introDone = true; if (glowCv) glowCv.classList.add('on'); }
