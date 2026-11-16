@@ -68,6 +68,17 @@ a:hover{color:var(--accent)}
 .nowplaying{animation:npIn .5s steps(6) both}@keyframes npIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}@media (max-width:640px){.nowplaying{display:none}}
 .soundbar{transition:opacity .9s ease}.soundbar.idle{opacity:.16}
 .tile:hover .artimg img,.tile:focus-visible .artimg img{transform:scale(1.04)}
+.lightbox{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:clamp(16px,4vw,64px);background:rgba(0,0,0,.86);animation:lbIn .35s steps(5) both}
+@keyframes lbIn{from{opacity:0}to{opacity:1}}
+.lbwrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;max-width:100%;animation:lbZoom .4s cubic-bezier(.2,.8,.2,1) both}
+@keyframes lbZoom{from{transform:scale(.94)}to{transform:none}}
+.lbbox{display:block;line-height:0}
+.lbimg{display:block;max-width:min(88vw,1600px);max-height:78vh;width:auto;height:auto}
+.lbcap{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;justify-content:center;color:#F2EEFA;text-align:center}
+.lbbtn{all:unset;box-sizing:border-box;position:absolute;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid rgba(242,238,250,.3);background:rgba(0,0,0,.6);color:#F2EEFA;font-family:'Pixelta',monospace;font-size:26px;z-index:3}
+.lbbtn:hover,.lbbtn:focus-visible{border-color:var(--accent);box-shadow:0 0 14px color-mix(in srgb,var(--accent) 60%,transparent)}
+.lbx{top:18px;right:18px;font-size:20px}.lbprev{left:18px;top:50%;margin-top:-24px}.lbnext{right:18px;top:50%;margin-top:-24px}
+@media (max-width:640px){.lbprev,.lbnext{top:auto;bottom:18px;margin-top:0}.lbimg{max-height:70vh}}
 .mctls{animation:npIn .45s steps(6) both}.mctl svg{flex:none}
 @media (max-width:640px){h2.bobs>span{white-space:normal!important;display:block;margin-left:0!important;margin-top:12px}}
 .copiedmsg{display:inline-block;animation:npIn .45s steps(6) both}
@@ -125,6 +136,18 @@ a,button,[role="button"],label,summary,.row,.chip,.tile,.btn,.biglink,.sound,.mc
 
 <canvas class="navfx" ref="{{setNavFx}}" aria-hidden="true"></canvas>
 <audio ref="{{setAudio}}" preload="auto"></audio>
+<sc-if value="{{lbOpen}}" hint-placeholder-val="{{ false }}">
+<div class="lightbox" role="dialog" aria-modal="true" aria-label="{{lbTitle}}" onClick="{{lbClose}}">
+<button class="lbbtn lbx" onClick="{{lbClose}}" aria-label="Close">✕</button>
+<button class="lbbtn lbprev" onClick="{{lbPrev}}" aria-label="Previous image">‹</button>
+<button class="lbbtn lbnext" onClick="{{lbNext}}" aria-label="Next image">›</button>
+<div class="lbwrap" onClick="{{lbStop}}">
+<canvas class="vidfx" ref="{{vidFxRef}}" aria-hidden="true"></canvas>
+<div class="ph vidglow lbbox" style="padding: 0; background: {{lbBg}}"><img src="{{lbImg}}" alt="{{lbTitle}}" class="lbimg"></div>
+<div class="lbcap"><span style="font-size: 20px">{{lbTitle}}</span><span class="lbl" style="font-size: 13px">{{lbMeta}}</span></div>
+</div>
+</div>
+</sc-if>
 <div class="soundbar" ref="{{setSoundbar}}" style="position: fixed; right: 20px; bottom: 20px; z-index: 55; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: none">
 <sc-if value="{{musicOn}}" hint-placeholder-val="{{ false }}"><div class="mctls" style="display: flex; gap: 8px"><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 88%, transparent)" onClick="{{prevTrack}}" aria-label="Previous track" title="Previous track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="4" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect><rect x="6" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect></svg></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 88%, transparent)" onClick="{{togglePause}}" aria-label="{{pauseLabel}}" title="{{pauseLabel}}"><sc-if value="{{trackPlaying}}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="2" height="6"></rect><rect x="5" y="1" width="2" height="6"></rect></svg></sc-if><sc-if value="{{trackPaused}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="2" y="1" width="1" height="6"></rect><rect x="3" y="2" width="1" height="4"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="6" y="3" width="1" height="2"></rect></svg></sc-if></button><button class="chip mctl" style="pointer-events: auto; padding: 0; width: 44px; justify-content: center; background: color-mix(in srgb, var(--bg) 88%, transparent)" onClick="{{nextTrack}}" aria-label="Next track" title="Next track"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><rect x="0" y="1" width="1" height="6"></rect><rect x="1" y="2" width="1" height="4"></rect><rect x="2" y="3" width="1" height="2"></rect><rect x="3" y="1" width="1" height="6"></rect><rect x="4" y="2" width="1" height="4"></rect><rect x="5" y="3" width="1" height="2"></rect><rect x="7" y="1" width="1" height="6"></rect></svg></button></div></sc-if>
 <div style="display: flex; align-items: center; gap: 14px">
@@ -233,7 +256,7 @@ a,button,[role="button"],label,summary,.row,.chip,.tile,.btn,.biglink,.sound,.mc
 </div>
 <div class="artgrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 40px 28px">
 <sc-for list="{{art}}" as="a" hint-placeholder-count="6">
-<a href="{{a.href}}" class="tile stag" style="--d: {{a.delay}}">
+<a href="{{a.img}}" class="tile stag" onClick="{{a.open}}" aria-label="View {{a.title}} full size" style="--d: {{a.delay}}">
 <div class="ph artimg" style="aspect-ratio: 16 / 10; width: 100%; padding: 0; overflow: hidden; background: {{a.bg}}">
 <img src="{{a.img}}" alt="{{a.title}}" loading="lazy" decoding="async" style="display: block; width: 100%; height: 100%; object-fit: {{a.fit}}; object-position: {{a.pos}}; image-rendering: auto; transition: transform .6s cubic-bezier(.2,.7,.2,1)">
 </div>
@@ -293,12 +316,12 @@ a,button,[role="button"],label,summary,.row,.chip,.tile,.btn,.biglink,.sound,.mc
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794857484"></script>
+<script src="runtime.js?v=1794858297"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { music: true, paused: false, track: Math.floor(Math.random() * 4), open: null, filter: 'All', seen: {} };
+    this.state = { music: true, paused: false, track: Math.floor(Math.random() * 4), lb: -1, open: null, filter: 'All', seen: {} };
     this.cv = null;
     this.t = 0;
     this.mouse = [-9999, -9999];
@@ -340,6 +363,34 @@ class Component extends DCLogic {
     };
     this.lastSfx = 0;
     this.introPlan = null;
+    // art lightbox
+    this.lbShow = (i) => {
+      this.setState({ lb: i });
+      document.documentElement.style.overflow = 'hidden';
+      this.sfx('hover');
+      if (!this.lbKeys) {
+        this.lbKeys = (e) => {
+          if (this.state.lb == null || this.state.lb < 0) return;
+          if (e.key === 'Escape') this.lbClose();
+          else if (e.key === 'ArrowRight') this.lbNext();
+          else if (e.key === 'ArrowLeft') this.lbPrev();
+        };
+        window.addEventListener('keydown', this.lbKeys);
+      }
+    };
+    this.lbClose = (e) => {
+      if (e && e.stopPropagation) e.stopPropagation();
+      this.setState({ lb: -1 });
+      document.documentElement.style.overflow = '';
+    };
+    this.lbStep = (d, e) => {
+      if (e && e.stopPropagation) e.stopPropagation();
+      const n = (this.artList || []).length; if (!n) return;
+      this.setState({ lb: (((this.state.lb || 0) + d) % n + n) % n });
+      this.sfx('hover');
+    };
+    this.lbPrev = (e) => this.lbStep(-1, e);
+    this.lbNext = (e) => this.lbStep(1, e);
     // keyboard-like click (in the spirit of Opera GX's typing sounds): a crisp noise tap + a small wooden body
     this.keyBus = null; this.keyNoise = null; this.lastKey = 0;
     this.keyTick = (amt, soft) => {
@@ -2200,9 +2251,14 @@ class Component extends DCLogic {
       { title: 'Western Environment sketch', cat: 'Concept', meta: 'Concept art', img: 'assets/art/environment.jpg', bg: '#3E3E3E', fit: 'cover', pos: '50% 50%', href: as }
     ];
     const filter = S.filter || 'All';
-    const art = artAll
-      .filter((a) => filter === 'All' || a.cat === filter)
-      .map((a, i) => Object.assign({ pos: '50% 50%' }, a, { delay: (0.5 + i * 0.14).toFixed(2) + 's' }));
+    const artF = artAll.filter((a) => filter === 'All' || a.cat === filter);
+    this.artList = artF;
+    const art = artF.map((a, i) => Object.assign({ pos: '50% 50%' }, a, {
+      delay: (0.5 + i * 0.14).toFixed(2) + 's',
+      open: (e) => { if (e && e.preventDefault) e.preventDefault(); this.lbShow(i); }
+    }));
+    const lbI = S.lb != null && S.lb >= 0 && S.lb < artF.length ? S.lb : -1;
+    const lbA = lbI >= 0 ? artF[lbI] : null;
     const filters = ['All', '3D', 'Concept'].map((f) => ({
       label: f,
       cls: f === filter ? 'chip on' : 'chip',
@@ -2271,7 +2327,17 @@ class Component extends DCLogic {
       projects: projects,
       projCount: String(projects.length).padStart(2, '0'),
       filters: filters,
-      art: art
+      art: art,
+      lbOpen: !!lbA,
+      lbImg: lbA ? lbA.img : '',
+      lbTitle: lbA ? lbA.title : '',
+      lbCat: lbA ? lbA.cat : '',
+      lbMeta: lbA ? lbA.meta : '',
+      lbBg: lbA ? lbA.bg : '#000',
+      lbClose: this.lbClose,
+      lbPrev: this.lbPrev,
+      lbNext: this.lbNext,
+      lbStop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); }
     };
   }
 }
