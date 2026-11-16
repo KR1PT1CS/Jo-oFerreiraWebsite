@@ -85,6 +85,16 @@ a:hover{color:var(--accent)}
 .row{grid-template-columns:36px minmax(0,1fr);gap:14px}
 .rmeta{display:none !important}
 }
+/* phones & tablets */
+@media (max-width:1100px) and (hover:none){header.hero{height:max(620px,100svh)!important}}
+@media (min-width:600px) and (max-width:1100px){.artgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (max-width:640px){
+.biglink{font-size:clamp(20px,6.6vw,32px)!important;overflow-wrap:anywhere}
+.soundbar{right:12px!important;bottom:12px!important;gap:6px!important}
+.mctls{gap:6px!important}
+.mctl{width:38px!important;min-height:38px!important}
+.sound{min-height:38px!important;padding:0 12px!important}
+}
 .bob{display:inline-block;animation:bob 3.6s steps(5,end) infinite alternate;will-change:transform}
 @keyframes bob{from{transform:translateY(5px)}to{transform:translateY(-7px)}}
 .stroke{-webkit-text-stroke:10px #000000;paint-order:stroke fill}
@@ -127,7 +137,7 @@ a,button,[role="button"],label,summary,.row,.chip,.tile,.btn,.biglink,.sound,.mc
 </div>
 </div>
 
-<header onMouseMove="{{onMove}}" onMouseLeave="{{onLeave}}" style="position: relative; height: 900px; overflow: hidden">
+<header class="hero" onMouseMove="{{onMove}}" onMouseLeave="{{onLeave}}" style="position: relative; height: 900px; overflow: hidden">
 <canvas ref="{{setCanvas}}" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated"></canvas>
 <canvas ref="{{setCurFx}}" aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; pointer-events: none; image-rendering: pixelated"></canvas>
 
@@ -221,7 +231,7 @@ a,button,[role="button"],label,summary,.row,.chip,.tile,.btn,.biglink,.sound,.mc
 </sc-for>
 </div>
 </div>
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 40px 28px">
+<div class="artgrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 40px 28px">
 <sc-for list="{{art}}" as="a" hint-placeholder-count="6">
 <a href="{{a.href}}" class="tile stag" style="--d: {{a.delay}}">
 <div class="ph artimg" style="aspect-ratio: 16 / 10; width: 100%; padding: 0; overflow: hidden; background: {{a.bg}}">
@@ -283,7 +293,7 @@ a,button,[role="button"],label,summary,.row,.chip,.tile,.btn,.biglink,.sound,.mc
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794856339"></script>
+<script src="runtime.js?v=1794856873"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -842,6 +852,22 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
+    {
+      const hero = () => (this.cv && this.cv.closest ? this.cv.closest('header') : null);
+      const touch = (e) => {
+        const t = e.touches && e.touches[0]; const h = hero();
+        if (!t || !h) return;
+        const r = h.getBoundingClientRect();
+        if (t.clientY < r.top || t.clientY > r.bottom) { this.onLeave(); return; }
+        clearTimeout(this.touchTo);
+        this.onMove({ clientX: t.clientX, clientY: t.clientY, currentTarget: h });
+      };
+      const end = () => { clearTimeout(this.touchTo); this.touchTo = setTimeout(() => this.onLeave(), 700); };
+      window.addEventListener('touchstart', touch, { passive: true });
+      window.addEventListener('touchmove', touch, { passive: true });
+      window.addEventListener('touchend', end, { passive: true });
+      window.addEventListener('touchcancel', end, { passive: true });
+    }
     this.armSound();
     this.armHover();
     this.startReveal();
