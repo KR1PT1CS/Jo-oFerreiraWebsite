@@ -67,6 +67,7 @@ a:hover{color:var(--accent)}
 .soundbar{transition:opacity .9s ease}.soundbar.idle{opacity:.16}
 .tile:hover .artimg img,.tile:focus-visible .artimg img{transform:scale(1.04)}
 .mctls{animation:npIn .45s steps(6) both}.mctl svg{flex:none}
+@media (max-width:640px){h2.bobs>span{white-space:normal!important;display:block;margin-left:0!important;margin-top:12px}}
 .copiedmsg{display:inline-block;animation:npIn .45s steps(6) both}
 .chip.on{background:#F2EEFA;color:#000000;border-color:#F2EEFA;text-shadow:none}
 .tag{display:inline-flex;background:color-mix(in srgb,var(--bg) 72%,transparent);padding:6px 11px;border:1px solid rgba(180,140,255,.26);border-radius:0;font-size:13px;letter-spacing:.04em;color:#DCD3EC}
@@ -280,7 +281,7 @@ a,button,[role="button"],label,summary,.row,.chip,.tile,.btn,.biglink,.sound,.mc
 </div>
 </template>
 <script type="application/json" id="props">{"$preview":{"width":1440,"height":3900},"corFundo":{"editor":"color","default":"#000000","options":["#000000","#07040C","#0B0B0C","#0A0F0B"],"section":"Cores"},"corDither":{"editor":"color","default":"#4B3161","options":["#4B3161","#6B3FA0","#2E1F45","#CFCBC3"],"section":"Cores"},"corDestaque":{"editor":"color","default":"#B48CFF","options":["#B48CFF","#FF5A1F","#7CF2C4","#F2E14C"],"section":"Cores"},"corGlow":{"editor":"color","default":"#9B6BFF","options":["#9B6BFF","#FFFFFF","#FF5A1F","#7CF2C4"],"section":"Glow"},"intensidadeGlow":{"editor":"range","default":0.7,"min":0,"max":1.4,"step":0.05,"section":"Glow"},"padrao":{"editor":"enum","default":"fluido","options":["fluido","ondas","anéis"],"section":"Dithering"},"velocidade":{"editor":"range","default":1,"min":0,"max":4,"step":0.1,"section":"Dithering"},"tamanhoPixel":{"editor":"range","default":3,"min":1,"max":10,"step":1,"unit":"px","section":"Dithering"},"escala":{"editor":"range","default":2.2,"min":0.5,"max":8,"step":0.1,"section":"Dithering"},"contraste":{"editor":"range","default":1.5,"min":0.5,"max":3,"step":0.1,"section":"Dithering"},"densidade":{"editor":"range","default":-0.02,"min":-0.5,"max":0.5,"step":0.01,"section":"Dithering"},"interacaoRato":{"editor":"boolean","default":true,"section":"Dithering"},"corCursor":{"editor":"color","default":"#A57FD0","options":["#A57FD0","#C9A8F0","#7E55B0","#FFFFFF"],"section":"Cursor"},"raioCursor":{"editor":"range","default":0.09,"min":0.02,"max":0.3,"step":0.01,"section":"Cursor"},"respeitarMovimentoReduzido":{"editor":"boolean","default":false,"section":"Acessibilidade"},"volumeMusica":{"editor":"range","default":0.12,"min":0,"max":1,"step":0.05,"section":"Música"},"volumeSfx":{"editor":"range","default":0.5,"min":0,"max":1,"step":0.05,"section":"Música"}}</script>
-<script src="runtime.js?v=1794855271"></script>
+<script src="runtime.js?v=1794855527"></script>
 <script>
 class Component extends DCLogic {
   constructor(props) {
@@ -1120,9 +1121,21 @@ class Component extends DCLogic {
         M = u * 60;
         try { await document.fonts.load(fsR + 'px "Dither Byte"', 'João Ferreira'); } catch (e) {}
         try { await document.fonts.ready; } catch (e) {}
+        // narrow screens: the smallest whole-pixel size (50px) can still be wider than the phone,
+        // so shrink by a fraction that stays on whole *device* pixels (e.g. 1/2 on a 2x screen)
+        {
+          const avail = Math.max(120, (h1.parentElement ? h1.parentElement.clientWidth : window.innerWidth) - 4);
+          const w0 = span.getBoundingClientRect().width;
+          if (w0 > avail) {
+            const dpr = window.devicePixelRatio || 1;
+            const k = Math.floor((avail / w0) * dpr);
+            sc = (dpr > 1 && k >= 1) ? k / dpr : avail / w0;
+            h1.style.fontSize = (fsR * sc) + 'px';
+          }
+        }
         const sr = span.getBoundingClientRect();
         // canvas reaches both screen edges so pixels can fly in from left and right
-        MX = Math.max(M, Math.ceil(Math.max(sr.left, (window.innerWidth || sr.right) - sr.right)) + 24);
+        MX = Math.max(M, Math.ceil(Math.max(sr.left, (window.innerWidth || sr.right) - sr.right) / sc) + 24);
         W = Math.ceil(sr.width / sc) + 2 * MX; H = Math.ceil(sr.height / sc) + 2 * M;
         cv.width = W; cv.height = H;
         cv.style.left = (-MX * sc) + 'px'; cv.style.top = (-M * sc) + 'px';
@@ -1352,8 +1365,8 @@ class Component extends DCLogic {
           const pad = 48;
           if (!glowCv || !glowCv.isConnected) { glowCv = document.createElement('canvas'); glowCv.className = 'nameglow'; glowCv.setAttribute('aria-hidden', 'true'); span.insertBefore(glowCv, cv); }
           glowCv.width = W + pad * 2; glowCv.height = H + pad * 2;
-          glowCv.style.left = (-MX * sc - pad) + 'px'; glowCv.style.top = (-M * sc - pad) + 'px';
-          glowCv.style.width = glowCv.width + 'px'; glowCv.style.height = glowCv.height + 'px';
+          glowCv.style.left = ((-MX - pad) * sc) + 'px'; glowCv.style.top = ((-M - pad) * sc) + 'px';
+          glowCv.style.width = (glowCv.width * sc) + 'px'; glowCv.style.height = (glowCv.height * sc) + 'px';
           const sil = document.createElement('canvas'); sil.width = W; sil.height = H;
           const sx = sil.getContext('2d'); sx.fillStyle = '#FFFFFF';
           for (let k = 0; k < n; k++) sx.fillRect(Math.round(hx[k]), Math.round(hy[k]), u, u);
@@ -1374,7 +1387,7 @@ class Component extends DCLogic {
           if (introDone) glowCv.classList.add('on'); else glowCv.classList.remove('on');
         } catch (err) {}
         if (introDone) draw(true);
-        key = sr.width.toFixed(0) + 'x' + sr.height.toFixed(0) + '@' + fs;
+        key = sr.width.toFixed(0) + 'x' + sr.height.toFixed(0) + '@' + parseFloat(getComputedStyle(h1).fontSize);
         resting = false;
         h1.classList.add('name-live');
       } finally { building = false; }
